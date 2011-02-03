@@ -6,19 +6,23 @@ use warnings;
 use Test::More;
 use Test::Fatal;
 use Test::Moose;
+
+use FindBin;
 use DateTime;
+use Path::Class;
 
 BEGIN {
-    use_ok('SAuth');
-    use_ok('SAuth::Provider::KeyStore::Hash')
+    use_ok('SAuth::Provider');
+    use_ok('SAuth::Provider::KeyStore::Dir');
+    use_ok('SAuth::Core::TokenStore::Hash');
 }
 
-my $_24_HOURS = 24 * 60 * 60;
-my $JSON_KEY = '{"allow_refresh":true,"capabilities":["read","update"],"expires":"2012-12-20T00:00:00Z","shared_secret":"ca2625eed11a8f22a16e83a9eb78e23816d68e2eb6443ce0dfb89659154263d1","token_max_lifespan":"86400","uid":"http://www.example.org"}';
+map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
 
 my $provider = SAuth::Provider->new(
     secret       => 'shhh its a secret, dont tell anyone',
-    key_store    => SAuth::Provider::KeyStore::Hash->new,
+    key_store    => SAuth::Provider::KeyStore::Dir->new( dir => [ $FindBin::Bin, 'key-store' ]),
+    token_store  => SAuth::Core::TokenStore::Hash->new,
     capabilities => [qw[
         create
         read
@@ -27,6 +31,8 @@ my $provider = SAuth::Provider->new(
     ]]
 );
 isa_ok($provider, 'SAuth::Provider');
+
+my $json;
 
 {
     my $key = $provider->create_key(
@@ -37,15 +43,17 @@ isa_ok($provider, 'SAuth::Provider');
         ]],
         allow_refresh      => 1,
         expires            => DateTime->new( day => 20, month => 12, year => 2012 ),
-        token_max_lifespan => $_24_HOURS
+        token_max_lifespan => 24 * 60 * 60
     );
-    isa_ok($key, 'SAuth::Provider::Key');
+    isa_ok($key, 'SAuth::Core::Key');
 
     check_key( $key );
+
+    $json = $key->to_json;
 }
 
 {
-    my $key = SAuth::Provider::Key->from_JSON( $JSON_KEY );
+    my $key = SAuth::Core::Key->from_json( $json );
     check_key( $key );
 }
 
@@ -64,7 +72,6 @@ sub check_key {
     is($key->expires->day, 20, '... got the right expires day');
     is($key->expires->month, 12, '... got the right expires month');
     is($key->expires->year, 2012, '... got the right expires year');
-    is($key->token_max_lifespan, $_24_HOURS, '... got the right token max lifespan in hours');
-    like($key->shared_secret, qr/^[a-z0-9]+$/, '... got the expected shared secret format');
-    is($key->to_JSON, $JSON_KEY, '... got the JSON we expected');
+    is($key->token_max_lifespan, 24 * 60 * 60, '... got the right token max lifespan in hours');
+    like(SAuth::Util::encode_base64($key->shared_secret), qr/^[a-zA-Z0-9]+==$/, '... got the expected shared secret format');
 }

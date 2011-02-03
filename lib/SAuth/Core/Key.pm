@@ -1,4 +1,4 @@
-package SAuth::Provider::Key;
+package SAuth::Core::Key;
 use Moose;
 
 use SAuth::Util;
@@ -10,9 +10,13 @@ has 'uid' => (
 );
 
 has 'capabilities' => (
+    traits   => [ 'Array' ],
     is       => 'ro',
     isa      => 'ArrayRef[ Str ]',
-    required => 1
+    required => 1,
+    handles  => {
+        '_find_capability' => 'first'
+    }
 );
 
 has 'allow_refresh' => (
@@ -39,7 +43,12 @@ has 'shared_secret' => (
     required => 1
 );
 
-sub to_JSON {
+sub has_capability {
+    my ($self, $capability) = @_;
+    $self->_find_capability( sub { $_ eq $capability } ) ? 1 : 0;
+}
+
+sub to_json {
     my $self = shift;
     encode_json({
         uid                => $self->uid,
@@ -47,17 +56,18 @@ sub to_JSON {
         allow_refresh      => $self->allow_refresh ? JSON::XS::true() : JSON::XS::false(),
         expires            => format_datetime( $self->expires ),
         token_max_lifespan => $self->token_max_lifespan,
-        shared_secret      => $self->shared_secret,
+        shared_secret      => encode_base64( $self->shared_secret ),
     });
 }
 
-sub from_JSON {
+sub from_json {
     my ($class, $json) = @_;
 
     my $data = decode_json( $json );
 
     $data->{allow_refresh} = $data->{allow_refresh} == JSON::XS::true ? 1 : 0;
     $data->{expires}       = parse_datetime( $data->{expires} );
+    $data->{shared_secret} = decode_base64( $data->{shared_secret} );
 
     $class->new( $data );
 }
@@ -72,7 +82,7 @@ __END__
 
 =head1 SYNOPSIS
 
-  use SAuth::Provider::Key;
+  use SAuth::Core::Key;
 
 =head1 DESCRIPTIOn
 
@@ -103,11 +113,11 @@ The max length in seconds that a token is valid for.
 This is the shared secret between the key provider and the key
 owner.
 
-=method to_JSON
+=method to_json
 
 Converts this key into JSON.
 
-=method from_JSON( $json )
+=method from_json( $json )
 
 Converts a JSON key into a key object.
 

@@ -40,7 +40,7 @@ The web-service then stores the token and access-grant in the token store.
 
 The web-service sends the web-app back the access-grant and a nonce.
 
-The web-service checks the access-grant against it's request and does whatever
+The web-app checks the access-grant against it's request and does whatever
 is appropriate.
 
 On each request to the web-service from the web-app, the web-app must include

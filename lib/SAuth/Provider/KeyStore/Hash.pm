@@ -4,7 +4,7 @@ use Moose;
 has 'keys' => (
     traits  => [ 'Hash' ],
     is      => 'ro',
-    isa     => 'HashRef[ SAuth::Provider::Key ]',
+    isa     => 'HashRef[ SAuth::Core::Key ]',
     lazy    => 1,
     default => sub { +{} },
     handles => {

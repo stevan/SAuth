@@ -1,11 +1,19 @@
 package SAuth::Provider;
 use Moose;
+use MooseX::Params::Validate;
 
 use SAuth::Util;
-use SAuth::Provider::Key;
-use SAuth::Provider::KeyStore;
 
-use List::AllUtils qw[ first ];
+use SAuth::Core::Key;
+use SAuth::Core::AccessRequest;
+use SAuth::Core::AccessGrant;
+
+use SAuth::Provider::KeyStore;
+use SAuth::Core::TokenStore;
+
+use DateTime;
+use DateTime::Duration;
+use List::AllUtils qw[ first min ];
 
 has 'secret' => (
     is       => 'ro',
@@ -23,6 +31,13 @@ has 'capabilities' => (
     }
 );
 
+has 'access_request_timestamp_tolerance' => (
+    is      => 'ro',
+    isa     => 'DateTime::Duration',
+    lazy    => 1,
+    default => sub { DateTime::Duration->new( seconds => 30 ) },
+);
+
 has 'key_store' => (
     is       => 'ro',
     does     => 'SAuth::Provider::KeyStore',
@@ -33,20 +48,42 @@ has 'key_store' => (
     ]]
 );
 
-sub create_key {
-    my ($self, %args) = @_;
+has 'token_store' => (
+    is       => 'ro',
+    does     => 'SAuth::Core::TokenStore',
+    required => 1,
+    handles  => [qw[
+        get_token
+        has_token
+    ]]
+);
 
-    foreach my $capability ( @{ $args{ capabilities } } ) {
+## Key creation and management
+
+sub create_key {
+    my ($self, $uid, $capabilities, $allow_refresh, $expires, $token_max_lifespan) = validated_list(\@_,
+        uid                => { isa => 'Str' },
+        capabilities       => { isa => 'ArrayRef[Str]' },
+        allow_refresh      => { isa => 'Bool' },
+        expires            => { isa => 'DateTime' },
+        token_max_lifespan => { isa => 'Int' },
+    );
+
+    foreach my $capability ( @$capabilities ) {
         ( $self->has_capability( $capability ) )
             || confess "The capability ($capability) is not offered by this provider";
     }
 
-    confess "There is already a key for $args{uid}"
-        if $self->has_key_for( $args{uid} );
+    confess "There is already a key for $uid"
+        if $self->has_key_for( $uid );
 
-    my $key = SAuth::Provider::Key->new(
-        %args,
-        shared_secret => $self->generate_shared_secret( \%args )
+    my $key = SAuth::Core::Key->new(
+        uid                => $uid,
+        capabilities       => $capabilities,
+        allow_refresh      => $allow_refresh,
+        expires            => $expires,
+        token_max_lifespan => $token_max_lifespan,
+        shared_secret      => generate_random_data()
     );
 
     $self->key_store->add_key_for( $key->uid, $key );
@@ -54,21 +91,72 @@ sub create_key {
     $key;
 }
 
+## Access request
+
+sub process_access_request {
+    my ($self, $uid, $timestamp, $body, $hmac) = validated_list(\@_,
+        uid       => { isa => 'Str' },
+        timestamp => { isa => 'Int' },
+        body      => { isa => 'Str' },
+        hmac      => { isa => 'Str' },
+    );
+
+    confess "There is no key for the UID ($uid)"
+        unless $self->has_key_for( $uid );
+
+    my $key    = $self->get_key_for( $uid );
+    my $digest = hmac_digest( $key->shared_secret, $timestamp, $body );
+
+    if ( $hmac eq $digest ) {
+
+        my $now   = DateTime->now;
+        my $stamp = DateTime->from_epoch( epoch => $timestamp );
+        my $diff  = $now - $stamp;
+
+        unless ( DateTime::Duration->compare( $diff, $self->access_request_timestamp_tolerance ) <= 0 ) {
+            confess "Invalid Access Request - Request Expired"
+        }
+
+        return $self->_grant_access(
+            $key,
+            SAuth::Core::AccessRequest->from_json( $body )
+        );
+    }
+    else {
+        confess "Invalid Access Request - HMAC Verification Fail";
+    }
+}
+
+sub _grant_access {
+    my ($self, $key, $request) = @_;
+
+    my @access_to;
+    foreach my $capability ( @{ $request->access_for }) {
+        push @access_to => $capability
+            if $key->has_capability( $capability );
+    }
+
+    my $token_lifespan = min( $key->token_max_lifespan, $request->token_lifespan );
+    my $allow_refresh  = $key->allow_refresh;
+    my $timeout        = (DateTime->now + DateTime::Duration->new( seconds => $token_lifespan ));
+
+    my $access_grant = SAuth::Core::AccessGrant->new(
+        access_to   => \@access_to,
+        timeout     => $timeout,
+        can_refresh => $allow_refresh,
+        token       => generate_uuid()
+    );
+
+    $self->token_store->add_token( $access_grant );
+
+    $access_grant;
+}
+
+## Util methods
+
 sub has_capability {
     my ($self, $capability) = @_;
     $self->_find_capability( sub { $_ eq $capability } ) ? 1 : 0;
-}
-
-sub generate_shared_secret {
-    my ($self, $args) = @_;
-    digest(
-        $args->{uid},
-        @{ $args->{capabilities} },
-        $args->{allow_refresh},
-        format_datetime( $args->{expires} ),
-        $args->{token_max_lifespan},
-        $self->secret
-    );
 }
 
 __PACKAGE__->meta->make_immutable;
