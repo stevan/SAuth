@@ -3,7 +3,7 @@ use Moose;
 use MooseX::NonMoose;
 
 use Try::Tiny;
-use MIME::Base64;
+use SAuth::Util;
 
 extends 'Plack::Middleware';
 
@@ -21,7 +21,7 @@ sub call {
     return $self->unauthorized unless $auth;
 
     if ($auth =~ /^SAuth (.*)$/) {
-        my($token, $hmac) = split /:/, (MIME::Base64::decode($1) || ":");
+        my($token, $hmac) = split /:/, (decode_base64($1) || ":");
 
         my ($next_nonce, $new_timeout, $error);
         try {
