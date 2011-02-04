@@ -72,5 +72,5 @@ sub check_key {
     is($key->expires->month, 12, '... got the right expires month');
     is($key->expires->year, 2012, '... got the right expires year');
     is($key->token_max_lifespan, 24 * 60 * 60, '... got the right token max lifespan in hours');
-    like(SAuth::Util::encode_base64($key->shared_secret), qr/^[a-zA-Z0-9\/\+]+==$/, '... got the expected shared secret format');
+    like(SAuth::Util::encode_base64($key->shared_secret), qr/^[a-zA-Z0-9-]+$/, '... got the expected shared secret format');
 }
