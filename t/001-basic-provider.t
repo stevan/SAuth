@@ -14,7 +14,7 @@ use Path::Class;
 BEGIN {
     use_ok('SAuth::Provider');
     use_ok('SAuth::Provider::KeyStore::Dir');
-    use_ok('SAuth::Core::TokenStore::Hash');
+    use_ok('SAuth::Provider::TokenStore::Hash');
 }
 
 map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
@@ -22,7 +22,7 @@ map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
 my $provider = SAuth::Provider->new(
     secret       => 'shhh its a secret, dont tell anyone',
     key_store    => SAuth::Provider::KeyStore::Dir->new( dir => [ $FindBin::Bin, 'key-store' ]),
-    token_store  => SAuth::Core::TokenStore::Hash->new,
+    token_store  => SAuth::Provider::TokenStore::Hash->new,
     capabilities => [qw[
         create
         read
@@ -73,5 +73,5 @@ sub check_key {
     is($key->expires->month, 12, '... got the right expires month');
     is($key->expires->year, 2012, '... got the right expires year');
     is($key->token_max_lifespan, 24 * 60 * 60, '... got the right token max lifespan in hours');
-    like(SAuth::Util::encode_base64($key->shared_secret), qr/^[a-zA-Z0-9]+==$/, '... got the expected shared secret format');
+    like(SAuth::Util::encode_base64($key->shared_secret), qr/^[a-zA-Z0-9\/\+]+==$/, '... got the expected shared secret format');
 }

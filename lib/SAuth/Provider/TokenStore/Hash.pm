@@ -1,12 +1,12 @@
-package SAuth::Core::TokenStore::Hash;
+package SAuth::Provider::TokenStore::Hash;
 use Moose;
 
-with 'SAuth::Core::TokenStore';
+with 'SAuth::Provider::TokenStore';
 
 has 'access_grants' => (
     traits  => [ 'Hash' ],
     is      => 'ro',
-    isa     => 'HashRef[ SAuth::Core::AccessGrant ]',
+    isa     => 'HashRef[ HashRef[ Str | SAuth::Core::AccessGrant ] ]',
     lazy    => 1,
     default => sub { +{} },
 );
@@ -26,6 +26,16 @@ sub add_token {
     $self->access_grants->{ $access_grant->token } = $access_grant;
 }
 
+sub update_nonce_for_token {
+    my ($self, $token, $nonce) = @_;
+    $self->access_grants->{ $token }->nonce( $nonce );
+}
+
+sub get_current_nonce_for_token {
+    my ($self, $token) = @_;
+    $self->access_grants->{ $token }->nonce;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 no Moose; 1;
@@ -36,7 +46,7 @@ __END__
 
 =head1 SYNOPSIS
 
-  use SAuth::Core::TokenStore::Hash;
+  use SAuth::Provider::TokenStore::Hash;
 
 =head1 DESCRIPTION
 

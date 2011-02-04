@@ -14,14 +14,10 @@ has 'key' => (
     required => 1,
 );
 
-has 'token_store' => (
-    is       => 'ro',
-    does     => 'SAuth::Core::TokenStore',
-    required => 1,
-    handles  => [qw[
-        get_token
-        has_token
-    ]]
+has 'access_grant' => (
+    is        => 'rw',
+    isa       => 'SAuth::Core::AccessGrant',
+    predicate => 'has_access_grant'
 );
 
 sub create_access_request {
@@ -41,13 +37,17 @@ sub create_access_request {
 }
 
 sub process_access_grant {
-    my ($self, $nonce, $_access_grant) = validated_list(\@_,
-        nonce        => { isa => 'Any' },
-        access_grant => { isa => 'Str' },
+    my ($self, $access_grant) = @_;
+    $self->access_grant( SAuth::Core::AccessGrant->from_json( $access_grant ) );
+}
+
+sub generate_token_hmac {
+    my $self = shift;
+    hmac_digest(
+        $self->key->shared_secret,
+        $self->access_grant->token,
+        $self->access_grant->nonce
     );
-
-    my $access_grant = SAuth::Core::AccessGrant->from_json( $_access_grant );
-
 }
 
 __PACKAGE__->meta->make_immutable;

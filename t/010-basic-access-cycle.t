@@ -14,7 +14,7 @@ use Path::Class;
 BEGIN {
     use_ok('SAuth::Provider');
     use_ok('SAuth::Provider::KeyStore::Dir');
-    use_ok('SAuth::Core::TokenStore::Hash');
+    use_ok('SAuth::Provider::TokenStore::Hash');
     use_ok('SAuth::Consumer');
 }
 
@@ -22,7 +22,7 @@ map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
 
 my $provider = SAuth::Provider->new(
     secret       => 'shhh its a secret, dont tell anyone',
-    token_store  => SAuth::Core::TokenStore::Hash->new,
+    token_store  => SAuth::Provider::TokenStore::Hash->new,
     key_store    => SAuth::Provider::KeyStore::Dir->new( dir => [ $FindBin::Bin, 'key-store' ]),
     capabilities => [qw[
         create
@@ -49,8 +49,7 @@ isa_ok($provider, 'SAuth::Provider');
 ## .....................................................
 
 my $consumer = SAuth::Consumer->new(
-    key         => $provider->get_key_for('http://www.example.org'),
-    token_store => SAuth::Core::TokenStore::Hash->new,
+    key => $provider->get_key_for('http://www.example.org'),
 );
 isa_ok($consumer, 'SAuth::Consumer');
 
@@ -78,14 +77,34 @@ isa_ok($access_grant, 'SAuth::Core::AccessGrant');
 isa_ok($access_grant->timeout, 'DateTime');
 ok($access_grant->can_refresh, '... we are allowed to refresh this token');
 is_deeply($access_grant->access_to, [qw[ read ]], '... got the right access');
-like($access_grant->token, qr/^[A-Z0-9-]+$/, '... go the token');
+like($access_grant->token, qr/^[A-Z0-9-]+$/, '... got the token');
+like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9\/\+]+==$/, '... got the nonce');
 
 ## .....................................................
 
-$consumer->process_access_grant(
-    current_nonce => undef,
-    access_grant  => $access_grant->to_json
-);
+$consumer->process_access_grant( $access_grant->to_json );
+
+foreach ( 0 .. 10 ) {
+    is(
+        $consumer->access_grant->nonce,
+        $provider->get_current_nonce_for_token( $consumer->access_grant->token ),
+        '... our current nonces match'
+    );
+
+    my ($next_nonce, $new_timeout);
+
+    is(exception {
+        ($next_nonce, $new_timeout) = $provider->authenticate(
+            token => $consumer->access_grant->token,
+            hmac  => $consumer->generate_token_hmac
+        );
+    }, undef, '... no exception has been thrown during authenticate');
+
+    $consumer->access_grant->nonce( $next_nonce );
+    if ( $new_timeout ) {
+        $consumer->access_grant->timeout( $new_timeout );
+    }
+}
 
 
 done_testing;

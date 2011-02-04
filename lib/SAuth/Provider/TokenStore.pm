@@ -1,4 +1,4 @@
-package SAuth::Core::TokenStore;
+package SAuth::Provider::TokenStore;
 use Moose::Role;
 
 use SAuth::Util;
@@ -15,7 +15,7 @@ __END__
 
 =head1 SYNOPSIS
 
-  use SAuth::Core::TokenStore;
+  use SAuth::Provider::TokenStore;
 
 =head1 DESCRIPTION
 

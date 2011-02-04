@@ -62,7 +62,7 @@ sub hmac_digest {
     $d->hexdigest;
 }
 
-sub generate_uuid { Data::UUID->new->as_string }
+sub generate_uuid { Data::UUID->new->create_str }
 
 sub generate_random_data { get_strong( shift || 16 ) }
 

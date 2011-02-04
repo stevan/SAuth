@@ -9,7 +9,7 @@ use SAuth::Core::AccessRequest;
 use SAuth::Core::AccessGrant;
 
 use SAuth::Provider::KeyStore;
-use SAuth::Core::TokenStore;
+use SAuth::Provider::TokenStore;
 
 use DateTime;
 use DateTime::Duration;
@@ -50,11 +50,14 @@ has 'key_store' => (
 
 has 'token_store' => (
     is       => 'ro',
-    does     => 'SAuth::Core::TokenStore',
+    does     => 'SAuth::Provider::TokenStore',
     required => 1,
     handles  => [qw[
         get_token
         has_token
+
+        update_nonce_for_token
+        get_current_nonce_for_token
     ]]
 );
 
@@ -141,15 +144,48 @@ sub _grant_access {
     my $timeout        = (DateTime->now + DateTime::Duration->new( seconds => $token_lifespan ));
 
     my $access_grant = SAuth::Core::AccessGrant->new(
+        uid         => $key->uid,
+        token       => generate_uuid(),
         access_to   => \@access_to,
         timeout     => $timeout,
         can_refresh => $allow_refresh,
-        token       => generate_uuid()
+        nonce       => generate_random_data(),
     );
 
     $self->token_store->add_token( $access_grant );
 
     $access_grant;
+}
+
+sub authenticate {
+    my ($self, $token, $hmac) = validated_list(\@_,
+        token => { isa => 'Str' },
+        hmac  => { isa => 'Str' },
+    );
+
+    my $access_grant = $self->get_token( $token );
+    my $key          = $self->get_key_for( $access_grant->uid );
+    my $digest       = hmac_digest( $key->shared_secret, $token, $access_grant->nonce );
+
+    if ( $digest eq $hmac ) {
+
+        my $new_timeout;
+        unless ( DateTime->compare( DateTime->now, $access_grant->timeout ) <= 0 ) {
+            if ( $access_grant->can_refresh ) {
+                $new_timeout = (DateTime->now + DateTime::Duration->new( seconds => $key->token_max_lifespan ));
+            }
+            else {
+                confess "Authentication Fail - Access Grant Expired";
+            }
+        }
+
+        my $next_nonce = generate_random_data();
+        $access_grant->nonce( $next_nonce );
+        return ($next_nonce, $new_timeout);
+    }
+    else {
+        confess "Authentication Fail - HMAC Verification Fail";
+    }
 }
 
 ## Util methods
