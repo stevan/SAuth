@@ -17,10 +17,9 @@ BEGIN {
     use_ok('SAuth::Provider::TokenStore::Hash');
 }
 
-map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
+map { -f $_ && $_ =~ /\.json$/ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
 
 my $provider = SAuth::Provider->new(
-    secret       => 'shhh its a secret, dont tell anyone',
     key_store    => SAuth::Provider::KeyStore::Dir->new( dir => [ $FindBin::Bin, 'key-store' ]),
     token_store  => SAuth::Provider::TokenStore::Hash->new,
     capabilities => [qw[

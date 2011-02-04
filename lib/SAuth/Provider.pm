@@ -15,12 +15,6 @@ use DateTime;
 use DateTime::Duration;
 use List::AllUtils qw[ first min ];
 
-has 'secret' => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1,
-);
-
 has 'capabilities' => (
     traits   => [ 'Array' ],
     is       => 'ro',

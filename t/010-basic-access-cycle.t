@@ -18,7 +18,7 @@ BEGIN {
     use_ok('SAuth::Consumer');
 }
 
-map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
+map { -f $_ && $_ =~ /\.json$/ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
 
 ## .....................................................
 ## Initialize a provider object, tell it where to find
@@ -26,7 +26,6 @@ map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
 ## .....................................................
 
 my $provider = SAuth::Provider->new(
-    secret       => 'shhh its a secret, dont tell anyone',
     token_store  => SAuth::Provider::TokenStore::Hash->new,
     key_store    => SAuth::Provider::KeyStore::Dir->new( dir => [ $FindBin::Bin, 'key-store' ]),
     capabilities => [qw[
