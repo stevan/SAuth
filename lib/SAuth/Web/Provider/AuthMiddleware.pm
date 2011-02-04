@@ -47,7 +47,7 @@ sub call {
                 if $new_timeout;
 
             my $res = $self->app->($env);
-            push @{ $res->[2] } => ( 'Authentication-Info' => $info );
+            push @{ $res->[1] } => ( 'Authentication-Info' => $info );
             return $res;
         }
 
