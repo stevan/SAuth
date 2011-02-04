@@ -66,6 +66,8 @@ test_psgi(
     app    => $app,
     client => sub {
         my $cb = shift;
+
+        my $access_grant;
         {
             my $req = POST(
                 "http://localhost/sauth/request_access",
@@ -79,15 +81,32 @@ test_psgi(
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for query-ing open slots');
 
-            my $access_grant = SAuth::Core::AccessGrant->from_json( $res->content );
+            $access_grant = SAuth::Core::AccessGrant->from_json( $res->content );
             isa_ok($access_grant, 'SAuth::Core::AccessGrant');
 
             isa_ok($access_grant->timeout, 'DateTime');
             ok($access_grant->can_refresh, '... we are allowed to refresh this token');
             is_deeply($access_grant->access_to, [qw[ read ]], '... got the right access');
             like($access_grant->token, qr/^[A-Z0-9-]+$/, '... got the token');
-            like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9\/\+]+==$/, '... got the nonce');
+            like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9-]+$/, '... got the nonce');
         }
+
+        $consumer->process_access_grant( $access_grant->to_json );
+
+        {
+            my $req = GET(
+                "http://localhost/-/" => (
+                    'Authorization' => 'SAuth ' . SAuth::Util::encode_base64(
+                        join ':' => $consumer->access_grant->token, $consumer->generate_token_hmac
+                    )
+                )
+            );
+            my $res = $cb->($req);
+            is($res->code, 200, '... got the right status for query-ing open slots');
+            is($res->content, 'HORRAY!', '... got the expected content');
+        }
+
+
     }
 );
 
