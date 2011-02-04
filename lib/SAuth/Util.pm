@@ -66,8 +66,8 @@ sub generate_uuid { Data::UUID->new->create_str }
 
 sub generate_random_data { get_strong( shift || 16 ) }
 
-sub encode_base64 { MIME::Base64::encode_base64( shift ) }
-sub decode_base64 { MIME::Base64::decode_base64( shift ) }
+sub encode_base64 { MIME::Base64::encode_base64url( shift ) }
+sub decode_base64 { MIME::Base64::decode_base64url( shift ) }
 
 1;
 
