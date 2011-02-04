@@ -20,6 +20,11 @@ BEGIN {
 
 map { -f $_ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
 
+## .....................................................
+## Initialize a provider object, tell it where to find
+## and store the tokens and keys
+## .....................................................
+
 my $provider = SAuth::Provider->new(
     secret       => 'shhh its a secret, dont tell anyone',
     token_store  => SAuth::Provider::TokenStore::Hash->new,
@@ -34,6 +39,8 @@ my $provider = SAuth::Provider->new(
 isa_ok($provider, 'SAuth::Provider');
 
 ## .....................................................
+## Create a key for a consumer
+## .....................................................
 
 {
     my $key = $provider->create_key(
@@ -47,12 +54,17 @@ isa_ok($provider, 'SAuth::Provider');
 }
 
 ## .....................................................
+## Initialize the consumer object with the key
+## .....................................................
 
 my $consumer = SAuth::Consumer->new(
     key => $provider->get_key_for('http://www.example.org'),
 );
 isa_ok($consumer, 'SAuth::Consumer');
 
+## .....................................................
+## The consumer prepares an access request to be sent
+## to the provider
 ## .....................................................
 
 my $access_request = $consumer->create_access_request(
@@ -64,6 +76,10 @@ isa_ok($access_request, 'SAuth::Consumer::RequestWrapper');
 like($access_request->hmac, qr/^[a-f0-9]+$/, '... go the hmac digest');
 isa_ok($access_request->body, 'SAuth::Core::AccessRequest');
 
+## .....................................................
+## the access request is sent to the provider, if
+## it is accepted the provider returns an access
+## grant to the consumer
 ## .....................................................
 
 my $access_grant = $provider->process_access_request(
@@ -81,10 +97,15 @@ like($access_grant->token, qr/^[A-Z0-9-]+$/, '... got the token');
 like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9\/\+]+==$/, '... got the nonce');
 
 ## .....................................................
+## The consumer recieves the access grant and can then
+## start using the service protected by the provider
+## .....................................................
 
 $consumer->process_access_grant( $access_grant->to_json );
 
 foreach ( 0 .. 10 ) {
+
+    # Check the nonce
     is(
         $consumer->access_grant->nonce,
         $provider->get_current_nonce_for_token( $consumer->access_grant->token ),
@@ -93,6 +114,15 @@ foreach ( 0 .. 10 ) {
 
     my ($next_nonce, $new_timeout);
 
+    ## .....................................................
+    ## every time the consumer wants to access the service
+    ## they must first authenticate with the provider
+    ## by sending the token and an hmac
+    ##
+    ## If the auth is successful, then they provider sends
+    ## back the next nonce, and if allow-refresh was true,
+    ## and the token timed out, a new timeout.
+    ## .....................................................
     is(exception {
         ($next_nonce, $new_timeout) = $provider->authenticate(
             token => $consumer->access_grant->token,
