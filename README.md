@@ -56,21 +56,21 @@ interplay.
 
 ## Terms
 
-*user*:
+*user* -
 the end-point, usually a human being
 
-*web-app*:
+*web-app* -
 a client of the web service
 
-*web-service*:
+*web-service* -
 another end-point, usually the owner of some resources
 
-*key*:
+*key* -
 a hash of some kind given to a web-app by a web-service to confirm their relationship
 with one another. The key is their shared secret. A web-app will typically only have
 one key, while a web-service will have given out many keys.
 
-*key-store*:
+*key-store* -
 a mapping held by the web-service that maps the keys to a set of capabilities. Those
 capabilities might look something like:
 
@@ -98,7 +98,7 @@ capabilities might look something like:
         token-max-lifespan : <duration>
     }
 
-*access-request*:
+*access-request* -
 a set of data passed from the web-app to the web-service which contains information about
 what it is they want to do. An example might be:
 
@@ -110,7 +110,7 @@ what it is they want to do. An example might be:
                                      // not supplied, max will be given)
     }
 
-*access-grant*:
+*access-grant* -
 a modified version of the access-request which tells the app what access is being given.
 An example might be:
 
@@ -124,11 +124,11 @@ An example might be:
                                    // without re-auth
     }
 
-*token*:
+*token* -
 a hash of some kind given by the web-service in response to an access-request. It represents
 the granting of an access-request.
 
-*token-store*:
+*token-store* -
 a mapping held by the web-service that maps the tokens to a specific access-grant as well
 as the current nonce being used.
 
