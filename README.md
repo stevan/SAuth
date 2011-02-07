@@ -1,4 +1,4 @@
-== Goals ==
+# SAuth
 
 The goal of this authorization scheme is to provide a way for a web-apps
 to access a web-service and interact with it based on the needs of the
@@ -9,7 +9,11 @@ It does this by allowing the web-app to get tokens from the web-service
 which grant a specific amount of access, for a specific amount of time,
 for a specific set of capabilities.
 
-== Basic Flow ==
+This is heavily based on the ideas found in OAuth and OAuth2, but our
+aim is to provide a much tighter focus on just web-app/web-service
+interplay.
+
+## Basic Flow
 
 The user logs into the web-app, knowing nothing more then that. They are
 authenticated within that application and all is well.
@@ -50,7 +54,7 @@ and the current nonce.
 On each response from the web-service, a new nonce is sent to be used for
 the next request.
 
-== Terms ==
+## Terms
 
 user:
 the end-point, usually a human being
@@ -128,9 +132,9 @@ token-store:
 a mapping held by the web-service that maps the tokens to a specific access-grant as well
 as the current nonce being used.
 
-== Implementation ==
+## Implementation Notes
 
-This system can be implemented in terms of middleware.
+Much of this system can be implemented in terms of middleware.
 
 The middleware handles the initial access-{request, grant} interaction completely
 using it's own end-point URL.
@@ -149,6 +153,55 @@ While the middleware wrapping the web-service sends back this header:
     Authentication-Info : nextnonce=<nonce>
 
 
+## Installation
+
+To install this module type the following:
+
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+## Dependencies
+
+This module requires these other modules and libraries:
+
+    Moose
+    MooseX::Params::Validate
+    MooseX::Types::Path::Class
+    MooseX::NonMoose
+
+    Plack
+
+    DateTime
+    DateTime::Duration
+    DateTime::Format::RFC3339
+
+    Digest
+    Digest::HMAC
+    Digest::SHA1
+    Crypt::Random::Source
+    Data::UUID
+
+    JSON::XS
+    MIME::Base64
+
+    List::AllUtils
+    Sub::Exporter
+
+    Test::More
+    Test::Moose
+    Test::Fatal
+    HTTP::Request::Common
+
+## Copyright and License
+
+Copyright (C) 2011 Infinity Interactive, Inc.
+
+(http://www.iinteractive.com)
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
 
 
 
