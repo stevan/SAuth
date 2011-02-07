@@ -15,44 +15,44 @@ interplay.
 
 ## Basic Flow
 
-The user logs into the web-app, knowing nothing more then that. They are
-authenticated within that application and all is well.
+- The user logs into the web-app, knowing nothing more then that. They are
+  authenticated within that application and all is well.
 
-The web-app itself now needs to ask the web-service for a token.
+- The web-app itself now needs to ask the web-service for a token.
 
-The web-app and the web-service have a pre-arranged relationship and the
-web-app has been given a key from the web-service.
+- The web-app and the web-service have a pre-arranged relationship and the
+  web-app has been given a key from the web-service.
 
-The web-app then takes the key, queries the local user info and builds an
-access-request.
+- The web-app then takes the key, queries the local user info and builds an
+  access-request.
 
-The access-request is then combined with a timestamp and the key to produce
-an HMAC.
+- The access-request is then combined with a timestamp and the key to produce
+  an HMAC.
 
-The access-request, the timestamp and the HMAC are all sent to the web-service.
+- The access-request, the timestamp and the HMAC are all sent to the web-service.
 
-The web-service then checks the access-request, timestamp and HMAC using
-it's copy of the key (located using the 'uid' field in the access-request)
+- The web-service then checks the access-request, timestamp and HMAC using
+  it's copy of the key (located using the 'uid' field in the access-request)
 
-If the key exists in the web-service's key-store, then it examines the list
-of capabilities in the access-request.
+- If the key exists in the web-service's key-store, then it examines the list
+  of capabilities in the access-request.
 
-If the access-request is valid then the web-service creates a token and an
-access-grant to be given back to the web-app.
+- If the access-request is valid then the web-service creates a token and an
+  access-grant to be given back to the web-app.
 
-The web-service then stores the token and access-grant in the token store.
+- The web-service then stores the token and access-grant in the token store.
 
-The web-service sends the web-app back the access-grant and a nonce.
+- The web-service sends the web-app back the access-grant and a nonce.
 
-The web-app checks the access-grant against it's request and does whatever
-is appropriate.
+- The web-app checks the access-grant against it's request and does whatever
+  is appropriate.
 
-On each request to the web-service from the web-app, the web-app must include
-the token and the a hash of the token (sent back in the access-grant), the key
-and the current nonce.
+- On each request to the web-service from the web-app, the web-app must include
+  the token and the a hash of the token (sent back in the access-grant), the key
+  and the current nonce.
 
-On each response from the web-service, a new nonce is sent to be used for
-the next request.
+- On each response from the web-service, a new nonce is sent to be used for
+  the next request.
 
 ## Terms
 
