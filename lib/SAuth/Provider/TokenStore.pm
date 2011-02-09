@@ -6,7 +6,7 @@ requires 'add_access_grant_for_token';
 requires 'get_access_grant_for_token';
 
 requires 'update_nonce_for_token';
-requires 'get_current_nonce_for_token';
+requires 'get_nonce_for_token';
 
 no Moose::Role; 1;
 

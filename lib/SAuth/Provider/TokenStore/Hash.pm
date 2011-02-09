@@ -13,22 +13,25 @@ has 'access_grants' => (
     }
 );
 
+has 'nonces' => (
+    traits  => [ 'Hash' ],
+    is      => 'ro',
+    isa     => 'HashRef',
+    lazy    => 1,
+    default => sub { +{} },
+    handles => {
+        'get_nonce_for_token' => 'get',
+        'update_nonce_for_token'      => 'set'
+    }
+);
+
 # Moose :(
 with 'SAuth::Provider::TokenStore';
 
 sub add_access_grant_for_token {
-    my ($self, $access_grant) = @_;
+    my ($self, $access_grant, $nonce) = @_;
     $self->access_grants->{ $access_grant->token } = $access_grant;
-}
-
-sub update_nonce_for_token {
-    my ($self, $token, $nonce) = @_;
-    $self->get_access_grant_for_token( $token )->nonce( $nonce );
-}
-
-sub get_current_nonce_for_token {
-    my ($self, $token) = @_;
-    $self->get_access_grant_for_token( $token )->nonce;
+    $self->nonces->{ $access_grant->token } = $nonce;
 }
 
 __PACKAGE__->meta->make_immutable;

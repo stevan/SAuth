@@ -50,8 +50,7 @@ has 'token_store' => (
         get_access_grant_for_token
         has_access_grant_for_token
 
-        update_nonce_for_token
-        get_current_nonce_for_token
+        get_nonce_for_token
     ]]
 );
 
@@ -143,10 +142,12 @@ sub _grant_access {
         access_to   => \@access_to,
         timeout     => $timeout,
         can_refresh => $allow_refresh,
-        nonce       => generate_random_data(),
     );
 
-    $self->token_store->add_access_grant_for_token( $access_grant );
+    $self->token_store->add_access_grant_for_token(
+        $access_grant,
+        generate_random_data()
+    );
 
     $access_grant;
 }
@@ -160,8 +161,9 @@ sub authenticate {
     );
 
     my $access_grant = $self->get_access_grant_for_token( $token );
+    my $nonce        = $self->get_nonce_for_token( $token );
     my $key          = $self->get_key_for( $access_grant->uid );
-    my $digest       = hmac_digest( $key->shared_secret, $token, $access_grant->nonce );
+    my $digest       = hmac_digest( $key->shared_secret, $token, $nonce );
 
     if ( $digest eq $hmac ) {
 
@@ -170,7 +172,7 @@ sub authenticate {
         }
 
         my $next_nonce = generate_random_data();
-        $self->update_nonce_for_token( $token, $next_nonce );
+        $self->token_store->update_nonce_for_token( $token, $next_nonce );
         return $next_nonce;
     }
     else {

@@ -35,17 +35,17 @@ sub get_access_grant_for_token {
 }
 
 sub add_access_grant_for_token {
-    my ($self, $access_grant) = @_;
+    my ($self, $access_grant, $nonce) = @_;
     $self->dbh->do(
         'INSERT INTO access_grants (token, access_grant, nonce) VALUES(?, ?, ?)',
         {},
         $access_grant->token,
         $access_grant->to_json,
-        SAuth::Util::encode_base64( $access_grant->nonce )
+        SAuth::Util::encode_base64( $nonce )
     );
 }
 
-sub get_current_nonce_for_token {
+sub get_nonce_for_token {
     my ($self, $token) = @_;
     my $sth = $self->dbh->prepare( 'SELECT nonce FROM access_grants WHERE token = ?' );
     $sth->execute( $token );
@@ -55,14 +55,11 @@ sub get_current_nonce_for_token {
 
 sub update_nonce_for_token {
     my ($self, $token, $nonce) = @_;
-    my $access_grant = $self->get_access_grant_for_token( $token );
-    $access_grant->nonce( $nonce );
     $self->dbh->do(
-        'UPDATE access_grants SET access_grant = ?, nonce = ? WHERE token = ?',
+        'UPDATE access_grants SET nonce = ? WHERE token = ?',
         {},
-        $access_grant->to_json,
         SAuth::Util::encode_base64( $nonce ),
-        $access_grant->token,
+        $token,
     );
 }
 
