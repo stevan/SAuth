@@ -13,6 +13,12 @@ has 'provider' => (
     required => 1
 );
 
+has 'realm' => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
+);
+
 sub call {
     my ($self, $env) = @_;
 
@@ -53,9 +59,31 @@ sub call {
 }
 
 sub unauthorized {
+    my $self = shift;
     return HTTP::Throwable::Unauthorized->new(
-        www_authenticate => 'SAuth "restricted area"'
+        www_authenticate =>
+            'SAuth realm="' . $self->realm . '"'
     )->as_psgi;
+}
+
+# utils ...
+
+sub parse_challenge {
+    my($self, $header) = @_;
+
+    my $auth;
+    while ($header =~ /(\w+)\=("[^\"]+"|[^,]+)/g ) {
+        $auth->{ $1 } = decode_base64( dequote( $2 ) );
+    }
+
+    return $auth;
+}
+
+sub dequote {
+    my $s = shift;
+    $s =~ s/^"(.*)"$/$1/;
+    $s =~ s/\\(.)/$1/g;
+    $s;
 }
 
 
