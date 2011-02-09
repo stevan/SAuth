@@ -42,11 +42,11 @@ sub process_access_grant {
 }
 
 sub generate_token_hmac {
-    my $self = shift;
+    my ($self, $nonce) = @_;
     hmac_digest(
         $self->key->shared_secret,
         $self->access_grant->token,
-        $self->access_grant->nonce
+        $nonce
     );
 }
 
