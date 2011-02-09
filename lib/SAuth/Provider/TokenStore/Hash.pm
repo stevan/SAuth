@@ -26,6 +26,16 @@ sub add_access_grant_for_token {
     $self->access_grants->{ $access_grant->token } = $access_grant;
 }
 
+sub update_nonce_for_token {
+    my ($self, $token, $nonce) = @_;
+    $self->get_access_grant_for_token( $token )->nonce( $nonce );
+}
+
+sub get_current_nonce_for_token {
+    my ($self, $token) = @_;
+    $self->get_access_grant_for_token( $token )->nonce;
+}
+
 __PACKAGE__->meta->make_immutable;
 
 no Moose; 1;

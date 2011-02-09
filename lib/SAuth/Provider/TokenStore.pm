@@ -5,15 +5,8 @@ requires 'has_access_grant_for_token';
 requires 'add_access_grant_for_token';
 requires 'get_access_grant_for_token';
 
-sub update_nonce_for_token {
-    my ($self, $token, $nonce) = @_;
-    $self->get_access_grant_for_token( $token )->nonce( $nonce );
-}
-
-sub get_current_nonce_for_token {
-    my ($self, $token) = @_;
-    $self->get_access_grant_for_token( $token )->nonce;
-}
+requires 'update_nonce_for_token';
+requires 'get_current_nonce_for_token';
 
 no Moose::Role; 1;
 
