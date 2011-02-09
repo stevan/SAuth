@@ -107,7 +107,7 @@ $consumer->process_access_grant( $access_grant->to_json );
 ## The provider needs to provide the initial nonce
 ## .....................................................
 
-my $current_nonce = $provider->get_nonce_for_token( $consumer->access_grant->token );
+my $current_nonce = $provider->generate_nonce;
 like(SAuth::Util::encode_base64($current_nonce), qr/^[a-zA-Z0-9-_]+$/, '... got the nonce');
 
 foreach ( 0 .. 10 ) {
@@ -123,7 +123,8 @@ foreach ( 0 .. 10 ) {
     is(exception {
         $current_nonce = $provider->authenticate(
             token => $consumer->access_grant->token,
-            hmac  => $consumer->generate_token_hmac( $current_nonce )
+            hmac  => $consumer->generate_token_hmac( $current_nonce ),
+            nonce => $current_nonce,
         );
     }, undef, '... no exception has been thrown during authenticate');
 }
