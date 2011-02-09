@@ -5,14 +5,14 @@ use MooseX::Types::Path::Class;
 use SAuth::Util;
 use SAuth::Core::Key;
 
+with 'SAuth::Provider::KeyStore';
+
 has 'dir' => (
     is       => 'ro',
     isa      => 'Path::Class::Dir',
     coerce   => 1,
     required => 1
 );
-
-with 'SAuth::Provider::KeyStore';
 
 sub has_key_for {
     my ($self, $uid) = @_;
@@ -41,7 +41,7 @@ __END__
 
 =head1 SYNOPSIS
 
-  use SAuth::Provider::KeyStore::Hash;
+  use SAuth::Provider::KeyStore::Dir;
 
 =head1 DESCRIPTION
 
