@@ -103,6 +103,7 @@ test_psgi(
             );
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for query-ing open slots');
+            like($res->header('Authentication-Info'), qr/^nextnonce\=[a-zA-Z0-9-_]+$/, '... got the right nonce in the header');
             is($res->content, 'HORRAY!', '... got the expected content');
         }
 
