@@ -37,10 +37,19 @@ sub build_router {
             };
 
             if ($error) {
-                return [ 500, [], [ $error ]];
+                return HTTP::Throwable::InternalServerError->new(
+                    message          => $error,
+                    show_stack_trace => 0
+                )->as_psgi;
             }
             else {
-                return [ 200, [], [ $access_grant->to_json ]];
+                my $json = $access_grant->to_json;
+                return [
+                    200,
+                    [ 'Content-Type'   => 'application/json',
+                      'Content-Length' => length $json ],
+                    [ $json ]
+                ];
             }
         }
     );

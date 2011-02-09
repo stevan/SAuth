@@ -34,15 +34,13 @@ sub call {
         };
 
         if ($error) {
-            return [
-                500,
-                [ 'Content-Type'   => 'text/plain',
-                  'Content-Length' => length $error ],
-                [ $error ]
-            ];
+            return HTTP::Throwable::InternalServerError->new(
+                message          => $error,
+                show_stack_trace => 0
+            )->as_psgi;
         }
         else {
-            my $info = 'nextnonce=' . $next_nonce;
+            my $info = 'nextnonce=' . SAuth::Util::encode_base64( $next_nonce );
             $info .= ';nexttimeout=' . $new_timeout
                 if $new_timeout;
 
@@ -57,15 +55,9 @@ sub call {
 }
 
 sub unauthorized {
-    my $self = shift;
-    my $body = shift || 'Authorization required';
-    return [
-        401,
-        [ 'Content-Type'     => 'text/plain',
-          'Content-Length'   => length $body,
-          'WWW-Authenticate' => 'SAuth "restricted area"' ],
-        [ $body ],
-    ];
+    return HTTP::Throwable::Unauthorized->new(
+        www_authenticate => 'SAuth "restricted area"'
+    )->as_psgi;
 }
 
 
