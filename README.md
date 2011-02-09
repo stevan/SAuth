@@ -171,6 +171,9 @@ This module requires these other modules and libraries:
     MooseX::NonMoose
 
     Plack
+    Plack::App::Path::Router::PSGI
+    Path::Router
+    HTTP::Throwable
 
     DateTime
     DateTime::Duration
@@ -187,6 +190,7 @@ This module requires these other modules and libraries:
 
     List::AllUtils
     Sub::Exporter
+    Try::Tiny
 
     Test::More
     Test::Moose
