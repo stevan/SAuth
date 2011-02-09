@@ -58,6 +58,7 @@ my $app = builder {
     mount '/sauth/' => SAuth::Web::Provider->new( provider => $provider )->to_app;
     mount '/-/' => SAuth::Web::Provider::AuthMiddleware->new(
         provider => $provider,
+        realm    => 'protected-service',
         app      => sub {
             return [ 200, [], ["HORRAY!"]];
         }
@@ -69,7 +70,7 @@ test_psgi(
     client => sub {
         my $cb = shift;
 
-        my $access_grant;
+        my ($access_grant, $nonce);
         {
             my $req = POST(
                 "http://localhost/sauth/request_access",
@@ -90,23 +91,34 @@ test_psgi(
             ok($access_grant->can_refresh, '... we are allowed to refresh this token');
             is_deeply($access_grant->access_to, [qw[ read ]], '... got the right access');
             like($access_grant->token, qr/^[A-Z0-9-]+$/, '... got the token');
-            like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9-_]+$/, '... got the nonce');
         }
 
         $consumer->process_access_grant( $access_grant->to_json );
 
         {
+            my $req = GET( "http://localhost/sauth/generate_nonce" );
+            my $res = $cb->($req);
+            is($res->code, 200, '... got the right status for generating a nonce');
+            $nonce = SAuth::Util::decode_base64( $res->content );
+            like(SAuth::Util::encode_base64($nonce), qr/^[a-zA-Z0-9-_]+$/, '... got the nonce');
+        }
+
+        foreach ( 0 .. 10 ) {
             my $req = GET(
                 "http://localhost/-/" => (
-                    'Authorization' => 'SAuth ' . SAuth::Util::encode_base64(
-                        join ':' => $consumer->access_grant->token, $consumer->generate_token_hmac
-                    )
+                    'Authorization' => 'SAuth ' .
+                    'response="' . SAuth::Util::encode_base64(
+                        join ':' => $consumer->access_grant->token, $consumer->generate_token_hmac( $nonce )
+                    ) . '",nonce="' . SAuth::Util::encode_base64( $nonce ) . '"'
                 )
             );
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for query-ing open slots');
-            like($res->header('Authentication-Info'), qr/^nextnonce\=[a-zA-Z0-9-_]+$/, '... got the right nonce in the header');
+            my $auth_info_header = $res->header('Authentication-Info');
+            like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
             is($res->content, 'HORRAY!', '... got the expected content');
+
+            ($nonce) = ($auth_info_header =~ /^nextnonce=\"([a-zA-Z0-9-_]+)\"/);
         }
 
 
