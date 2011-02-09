@@ -1,34 +1,11 @@
 package SAuth::Provider::KeyStore::SQLite;
 use Moose;
-use MooseX::Types::Path::Class;
 
 use SAuth::Util;
 use SAuth::Core::Key;
 
-use DBI;
-
-with 'SAuth::Provider::KeyStore';
-
-has 'db_file' => (
-    is       => 'ro',
-    isa      => 'Path::Class::File',
-    coerce   => 1,
-    required => 1,
-);
-
-has 'dbh' => (
-    init_arg => undef,
-    is       => 'ro',
-    isa      => 'DBI::db',
-    lazy     => 1,
-    default  => sub {
-        my $self = shift;
-        DBI->connect(
-            'dbi:SQLite:dbname=' . $self->db_file, '', '',
-            { RaiseError => 1, PrintError => 0 }
-        ) || confess $DBI::errstr;
-    },
-);
+with 'SAuth::Provider::KeyStore',
+     'SAuth::Core::Role::WithSQLiteHandle';
 
 sub BUILD {
     my $self = shift;
