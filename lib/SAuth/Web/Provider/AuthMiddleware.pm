@@ -27,13 +27,16 @@ sub call {
     return $self->unauthorized unless $auth;
 
     if ($auth =~ /^SAuth (.*)$/) {
-        my($token, $hmac) = split /:/, (decode_base64($1) || ":");
+        my $challange = $self->parse_challenge( $1 );
+
+        my($token, $hmac) = split /:/, $challange->{response};
 
         my ($next_nonce, $error);
         try {
             $next_nonce = $self->provider->authenticate(
                 token => $token,
-                hmac  => $hmac
+                hmac  => $hmac,
+                nonce => $challange->{nonce}
             );
         } catch {
             $error = $_;
@@ -48,7 +51,7 @@ sub call {
         else {
             my $res = $self->app->($env);
             push @{ $res->[1] } => (
-                'Authentication-Info' => 'nextnonce=' . SAuth::Util::encode_base64( $next_nonce )
+                'Authentication-Info' => 'nextnonce="' . encode_base64( $next_nonce ) . '"'
             );
             return $res;
         }
