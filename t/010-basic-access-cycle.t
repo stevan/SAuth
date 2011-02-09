@@ -95,7 +95,6 @@ isa_ok($access_grant->timeout, 'DateTime');
 ok($access_grant->can_refresh, '... we are allowed to refresh this token');
 is_deeply($access_grant->access_to, [qw[ read ]], '... got the right access');
 like($access_grant->token, qr/^[A-Z0-9-]+$/, '... got the token');
-like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9-_]+$/, '... got the nonce');
 
 ## .....................................................
 ## The consumer recieves the access grant and can then
@@ -104,16 +103,14 @@ like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9-_]+$/, '..
 
 $consumer->process_access_grant( $access_grant->to_json );
 
+## .....................................................
+## The provider needs to provide the initial nonce
+## .....................................................
+
+my $current_nonce = $provider->get_nonce_for_token( $consumer->access_grant->token );
+like(SAuth::Util::encode_base64($current_nonce), qr/^[a-zA-Z0-9-_]+$/, '... got the nonce');
+
 foreach ( 0 .. 10 ) {
-
-    # Check the nonce
-    is(
-        $consumer->access_grant->nonce,
-        $provider->get_current_nonce_for_token( $consumer->access_grant->token ),
-        '... our current nonces match'
-    );
-
-    my $next_nonce;
 
     ## .....................................................
     ## every time the consumer wants to access the service
@@ -121,17 +118,14 @@ foreach ( 0 .. 10 ) {
     ## by sending the token and an hmac
     ##
     ## If the auth is successful, then they provider sends
-    ## back the next nonce, and if allow-refresh was true,
-    ## and the token timed out, a new timeout.
+    ## back the next nonce
     ## .....................................................
     is(exception {
-        $next_nonce = $provider->authenticate(
+        $current_nonce = $provider->authenticate(
             token => $consumer->access_grant->token,
-            hmac  => $consumer->generate_token_hmac
+            hmac  => $consumer->generate_token_hmac( $current_nonce )
         );
     }, undef, '... no exception has been thrown during authenticate');
-
-    $consumer->access_grant->nonce( $next_nonce );
 }
 
 
