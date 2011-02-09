@@ -1,9 +1,12 @@
 package SAuth::Web::Provider;
 use Moose;
 
+use SAuth::Util;
+
 use Try::Tiny;
 use Path::Router;
 use Plack::Request;
+use HTTP::Throwable::InternalServerError;
 
 extends 'Plack::App::Path::Router::PSGI';
 
@@ -51,6 +54,19 @@ sub build_router {
                     [ $json ]
                 ];
             }
+        }
+    );
+
+    $router->add_route(
+        '/generate_nonce',
+        target => sub {
+            my $nonce = encode_base64( $self->provider->generate_nonce );
+            return [
+                200,
+                [ 'Content-Type'   => 'text/plain',
+                  'Content-Length' => length $nonce ],
+                [ $nonce ]
+            ];
         }
     );
 
