@@ -170,7 +170,7 @@ sub authenticate {
         }
 
         my $next_nonce = generate_random_data();
-        $access_grant->nonce( $next_nonce );
+        $self->update_nonce_for_token( $token, $next_nonce );
         return $next_nonce;
     }
     else {
