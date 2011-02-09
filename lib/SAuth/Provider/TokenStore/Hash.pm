@@ -1,25 +1,20 @@
 package SAuth::Provider::TokenStore::Hash;
 use Moose;
 
-with 'SAuth::Provider::TokenStore';
-
 has 'access_grants' => (
     traits  => [ 'Hash' ],
     is      => 'ro',
-    isa     => 'HashRef[ HashRef[ SAuth::Core::AccessGrant ] ]',
+    isa     => 'HashRef[ SAuth::Core::AccessGrant ]',
     lazy    => 1,
     default => sub { +{} },
+    handles => {
+        'has_access_grant_for_token' => 'exists',
+        'get_access_grant_for_token' => 'get',
+    }
 );
 
-sub has_access_grant_for_token {
-    my ($self, $token) = @_;
-    $self->access_grants->{ $token } ? 1 : 0;
-}
-
-sub get_access_grant_for_token {
-    my ($self, $token) = @_;
-    $self->access_grants->{ $token };
-}
+# Moose :(
+with 'SAuth::Provider::TokenStore';
 
 sub add_access_grant_for_token {
     my ($self, $access_grant) = @_;
