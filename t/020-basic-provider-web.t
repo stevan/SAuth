@@ -88,7 +88,7 @@ test_psgi(
             ok($access_grant->can_refresh, '... we are allowed to refresh this token');
             is_deeply($access_grant->access_to, [qw[ read ]], '... got the right access');
             like($access_grant->token, qr/^[A-Z0-9-]+$/, '... got the token');
-            like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9-]+$/, '... got the nonce');
+            like(SAuth::Util::encode_base64($access_grant->nonce), qr/^[a-zA-Z0-9-_]+$/, '... got the nonce');
         }
 
         $consumer->process_access_grant( $access_grant->to_json );
