@@ -18,7 +18,7 @@ BEGIN {
     use_ok('SAuth::Consumer');
 }
 
-my $DB_FILE = file("$FindBin::Bin/key-store/db");
+my $DB_FILE = file("$FindBin::Bin/data/db");
 
 unlink $DB_FILE;
 
