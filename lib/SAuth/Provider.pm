@@ -47,8 +47,8 @@ has 'token_store' => (
     does     => 'SAuth::Provider::TokenStore',
     required => 1,
     handles  => [qw[
-        get_token
-        has_token
+        get_access_grant_for_token
+        has_access_grant_for_token
 
         update_nonce_for_token
         get_current_nonce_for_token
@@ -146,7 +146,7 @@ sub _grant_access {
         nonce       => generate_random_data(),
     );
 
-    $self->token_store->add_token( $access_grant );
+    $self->token_store->add_access_grant_for_token( $access_grant );
 
     $access_grant;
 }
@@ -159,7 +159,7 @@ sub authenticate {
         hmac  => { isa => 'Str' },
     );
 
-    my $access_grant = $self->get_token( $token );
+    my $access_grant = $self->get_access_grant_for_token( $token );
     my $key          = $self->get_key_for( $access_grant->uid );
     my $digest       = hmac_digest( $key->shared_secret, $token, $access_grant->nonce );
 

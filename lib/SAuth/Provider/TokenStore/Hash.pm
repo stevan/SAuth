@@ -11,17 +11,17 @@ has 'access_grants' => (
     default => sub { +{} },
 );
 
-sub has_token {
+sub has_access_grant_for_token {
     my ($self, $token) = @_;
     $self->access_grants->{ $token } ? 1 : 0;
 }
 
-sub get_token {
+sub get_access_grant_for_token {
     my ($self, $token) = @_;
     $self->access_grants->{ $token };
 }
 
-sub add_token {
+sub add_access_grant_for_token {
     my ($self, $access_grant) = @_;
     $self->access_grants->{ $access_grant->token } = $access_grant;
 }
