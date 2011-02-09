@@ -22,7 +22,7 @@ has 'access_to' => (
 );
 
 has 'timeout' => (
-    is       => 'rw',
+    is       => 'ro',
     isa      => 'DateTime',
     required => 1
 );
@@ -33,21 +33,14 @@ has 'can_refresh' => (
     required => 1
 );
 
-has 'nonce' => (
-    is       => 'rw',
-    isa      => 'Str',
-    required => 1
-);
-
 sub to_json {
     my $self = shift;
     encode_json({
-        uid           => $self->uid,
-        token         => $self->token,
-        access_to     => $self->access_to,
-        timeout       => format_datetime( $self->timeout ),
-        can_refresh   => $self->can_refresh ? JSON::XS::true() : JSON::XS::false(),
-        nonce         => encode_base64( $self->nonce ),
+        uid         => $self->uid,
+        token       => $self->token,
+        access_to   => $self->access_to,
+        timeout     => format_datetime( $self->timeout ),
+        can_refresh => $self->can_refresh ? JSON::XS::true() : JSON::XS::false()
     });
 }
 
@@ -57,7 +50,6 @@ sub from_json {
 
     $data->{timeout}     = parse_datetime( $data->{timeout} );
     $data->{can_refresh} = $data->{can_refresh} == JSON::XS::true ? 1 : 0;
-    $data->{nonce}       = decode_base64( $data->{nonce} );
 
     $class->new( $data );
 }
