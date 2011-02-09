@@ -49,8 +49,6 @@ has 'token_store' => (
     handles  => [qw[
         get_access_grant_for_token
         has_access_grant_for_token
-
-        get_nonce_for_token
     ]]
 );
 
@@ -144,24 +142,25 @@ sub _grant_access {
         can_refresh => $allow_refresh,
     );
 
-    $self->token_store->add_access_grant_for_token(
-        $access_grant,
-        generate_random_data()
-    );
+    $self->token_store->add_access_grant_for_token( $access_grant );
 
     $access_grant;
 }
 
+## Nonce service
+
+sub generate_nonce { generate_random_data() }
+
 ## Authentication
 
 sub authenticate {
-    my ($self, $token, $hmac) = validated_list(\@_,
+    my ($self, $token, $hmac, $nonce) = validated_list(\@_,
         token => { isa => 'Str' },
         hmac  => { isa => 'Str' },
+        nonce => { isa => 'Str' },
     );
 
     my $access_grant = $self->get_access_grant_for_token( $token );
-    my $nonce        = $self->get_nonce_for_token( $token );
     my $key          = $self->get_key_for( $access_grant->uid );
     my $digest       = hmac_digest( $key->shared_secret, $token, $nonce );
 
@@ -171,9 +170,7 @@ sub authenticate {
             confess "Authentication Fail - Access Grant Expired";
         }
 
-        my $next_nonce = generate_random_data();
-        $self->token_store->update_nonce_for_token( $token, $next_nonce );
-        return $next_nonce;
+        return $self->generate_nonce;
     }
     else {
         confess "Authentication Fail - HMAC Verification Fail";

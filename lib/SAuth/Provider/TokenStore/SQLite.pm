@@ -12,7 +12,6 @@ sub BUILD {
         CREATE TABLE IF NOT EXISTS access_grants (
             token        VARCHAR( 36 ),
             access_grant TEXT,
-            nonce        VARCHAR( 36 ),
             PRIMARY KEY ( token )
         )
     ]);
@@ -35,31 +34,12 @@ sub get_access_grant_for_token {
 }
 
 sub add_access_grant_for_token {
-    my ($self, $access_grant, $nonce) = @_;
+    my ($self, $access_grant) = @_;
     $self->dbh->do(
-        'INSERT INTO access_grants (token, access_grant, nonce) VALUES(?, ?, ?)',
+        'INSERT INTO access_grants (token, access_grant) VALUES(?, ?)',
         {},
         $access_grant->token,
-        $access_grant->to_json,
-        SAuth::Util::encode_base64( $nonce )
-    );
-}
-
-sub get_nonce_for_token {
-    my ($self, $token) = @_;
-    my $sth = $self->dbh->prepare( 'SELECT nonce FROM access_grants WHERE token = ?' );
-    $sth->execute( $token );
-    my ($nonce) = $sth->fetchrow_array;
-    SAuth::Util::decode_base64( $nonce );
-}
-
-sub update_nonce_for_token {
-    my ($self, $token, $nonce) = @_;
-    $self->dbh->do(
-        'UPDATE access_grants SET nonce = ? WHERE token = ?',
-        {},
-        SAuth::Util::encode_base64( $nonce ),
-        $token,
+        $access_grant->to_json
     );
 }
 
