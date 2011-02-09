@@ -65,20 +65,24 @@ sub unauthorized {
     my $self = shift;
     return HTTP::Throwable::Unauthorized->new(
         www_authenticate =>
-            'SAuth realm="' . $self->realm . '"'
+            'SAuth realm="' . $self->realm
+              . '",nonce="' . encode_base64( $self->provider->generate_nonce ) . '"'
     )->as_psgi;
 }
 
 # utils ...
 
+# NOTE:
+# These were stolen pretty much verbatim
+# from Plack::Middleware::Digest, except
+# that I do the base64 decode on the values
+# - SL
 sub parse_challenge {
-    my($self, $header) = @_;
-
+    my ( $self, $header ) = @_;
     my $auth;
-    while ($header =~ /(\w+)\=("[^\"]+"|[^,]+)/g ) {
+    while ( $header =~ /(\w+)\=("[^\"]+"|[^,]+)/g ) {
         $auth->{ $1 } = decode_base64( dequote( $2 ) );
     }
-
     return $auth;
 }
 
