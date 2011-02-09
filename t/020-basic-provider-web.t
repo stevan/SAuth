@@ -16,19 +16,21 @@ use HTTP::Request::Common qw[ GET PUT POST DELETE ];
 
 BEGIN {
     use_ok('SAuth::Provider');
-    use_ok('SAuth::Provider::KeyStore::Dir');
-    use_ok('SAuth::Provider::TokenStore::Hash');
+    use_ok('SAuth::Provider::KeyStore::SQLite');
+    use_ok('SAuth::Provider::TokenStore::SQLite');
     use_ok('SAuth::Consumer');
 
     use_ok('SAuth::Web::Provider');
     use_ok('SAuth::Web::Provider::AuthMiddleware');
 }
 
-map { -f $_ && $_ =~ /\.json$/ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
+my $DB_FILE = file("$FindBin::Bin/key-store/db");
+
+unlink $DB_FILE;
 
 my $provider = SAuth::Provider->new(
-    token_store  => SAuth::Provider::TokenStore::Hash->new,
-    key_store    => SAuth::Provider::KeyStore::Dir->new( dir => [ $FindBin::Bin, 'key-store' ]),
+    key_store    => SAuth::Provider::KeyStore::SQLite->new( db_file => $DB_FILE ),
+    token_store  => SAuth::Provider::TokenStore::SQLite->new( db_file => $DB_FILE ),
     capabilities => [qw[
         create
         read

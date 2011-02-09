@@ -13,15 +13,17 @@ use Path::Class;
 
 BEGIN {
     use_ok('SAuth::Provider');
-    use_ok('SAuth::Provider::KeyStore::Dir');
-    use_ok('SAuth::Provider::TokenStore::Hash');
+    use_ok('SAuth::Provider::KeyStore::SQLite');
+    use_ok('SAuth::Provider::TokenStore::SQLite');
 }
 
-map { -f $_ && $_ =~ /\.json$/ ? unlink( $_ ) : () } dir("$FindBin::Bin/key-store")->children;
+my $DB_FILE = file("$FindBin::Bin/key-store/db");
+
+unlink $DB_FILE;
 
 my $provider = SAuth::Provider->new(
-    key_store    => SAuth::Provider::KeyStore::Dir->new( dir => [ $FindBin::Bin, 'key-store' ]),
-    token_store  => SAuth::Provider::TokenStore::Hash->new,
+    key_store    => SAuth::Provider::KeyStore::SQLite->new( db_file => $DB_FILE ),
+    token_store  => SAuth::Provider::TokenStore::SQLite->new( db_file => $DB_FILE ),
     capabilities => [qw[
         create
         read
