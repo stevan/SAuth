@@ -23,9 +23,9 @@ sub call {
     if ($auth =~ /^SAuth (.*)$/) {
         my($token, $hmac) = split /:/, (decode_base64($1) || ":");
 
-        my ($next_nonce, $new_timeout, $error);
+        my ($next_nonce, $error);
         try {
-            ($next_nonce, $new_timeout) = $self->provider->authenticate(
+            $next_nonce = $self->provider->authenticate(
                 token => $token,
                 hmac  => $hmac
             );
@@ -40,12 +40,10 @@ sub call {
             )->as_psgi;
         }
         else {
-            my $info = 'nextnonce=' . SAuth::Util::encode_base64( $next_nonce );
-            $info .= ';nexttimeout=' . $new_timeout
-                if $new_timeout;
-
             my $res = $self->app->($env);
-            push @{ $res->[1] } => ( 'Authentication-Info' => $info );
+            push @{ $res->[1] } => (
+                'Authentication-Info' => 'nextnonce=' . SAuth::Util::encode_base64( $next_nonce )
+            );
             return $res;
         }
 

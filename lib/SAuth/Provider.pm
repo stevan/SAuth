@@ -151,6 +151,8 @@ sub _grant_access {
     $access_grant;
 }
 
+## Authentication
+
 sub authenticate {
     my ($self, $token, $hmac) = validated_list(\@_,
         token => { isa => 'Str' },
@@ -163,19 +165,13 @@ sub authenticate {
 
     if ( $digest eq $hmac ) {
 
-        my $new_timeout;
         unless ( DateTime->compare( DateTime->now, $access_grant->timeout ) <= 0 ) {
-            if ( $access_grant->can_refresh ) {
-                $new_timeout = (DateTime->now + DateTime::Duration->new( seconds => $key->token_max_lifespan ));
-            }
-            else {
-                confess "Authentication Fail - Access Grant Expired";
-            }
+            confess "Authentication Fail - Access Grant Expired";
         }
 
         my $next_nonce = generate_random_data();
         $access_grant->nonce( $next_nonce );
-        return ($next_nonce, $new_timeout);
+        return $next_nonce;
     }
     else {
         confess "Authentication Fail - HMAC Verification Fail";

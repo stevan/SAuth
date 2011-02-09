@@ -111,7 +111,7 @@ foreach ( 0 .. 10 ) {
         '... our current nonces match'
     );
 
-    my ($next_nonce, $new_timeout);
+    my $next_nonce;
 
     ## .....................................................
     ## every time the consumer wants to access the service
@@ -123,16 +123,13 @@ foreach ( 0 .. 10 ) {
     ## and the token timed out, a new timeout.
     ## .....................................................
     is(exception {
-        ($next_nonce, $new_timeout) = $provider->authenticate(
+        $next_nonce = $provider->authenticate(
             token => $consumer->access_grant->token,
             hmac  => $consumer->generate_token_hmac
         );
     }, undef, '... no exception has been thrown during authenticate');
 
     $consumer->access_grant->nonce( $next_nonce );
-    if ( $new_timeout ) {
-        $consumer->access_grant->timeout( $new_timeout );
-    }
 }
 
 
