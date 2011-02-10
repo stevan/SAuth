@@ -71,6 +71,11 @@ sub _get_nonce {
     $self->_set_nonce( $res->body->[0] );
 }
 
+sub is_ready {
+    my $self = shift;
+    $self->nonce && $self->consumer->has_access_grant ? 1 : 0
+}
+
 sub send_service_call {
     my ($self, $req) = @_;
 
