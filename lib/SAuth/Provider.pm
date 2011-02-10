@@ -166,7 +166,7 @@ sub authenticate {
 
     if ( $digest eq $hmac ) {
 
-        unless ( DateTime->compare( DateTime->now, $access_grant->timeout ) <= 0 ) {
+        unless ( $access_grant->is_valid ) {
             confess "Authentication Fail - Access Grant Expired";
         }
 
