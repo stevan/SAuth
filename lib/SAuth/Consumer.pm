@@ -12,6 +12,10 @@ has 'key' => (
     is       => 'ro',
     isa      => 'SAuth::Core::Key',
     required => 1,
+    trigger  => sub {
+        ((shift)->key->is_valid)
+            || confess "The key is invalid";
+    }
 );
 
 has 'access_grant' => (
@@ -25,6 +29,9 @@ sub create_access_request {
         token_lifespan => { isa => 'Int' },
         access_for     => { isa => 'ArrayRef[Str]' },
     );
+
+    ($self->key->is_valid)
+        || confess "The key is invalid";
 
     SAuth::Consumer::RequestWrapper->new(
         key  => $self->key,
@@ -48,6 +55,16 @@ sub has_valid_access_grant {
 
 sub generate_token_hmac {
     my ($self, $nonce) = @_;
+
+    (defined $nonce)
+        || confess "Cannot generate token hmac without a nonce";
+
+    ($self->has_valid_access_grant)
+        || confess "Cannot generate token hmac without a valid access grant";
+
+    ($self->key->is_valid)
+        || confess "Cannot generate token hmac with an invalid key";
+
     hmac_digest(
         $self->key->shared_secret,
         $self->access_grant->token,
