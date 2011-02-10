@@ -83,20 +83,12 @@ sub send_service_call {
     my ($self, $req) = @_;
 
     if ( $req->isa('HTTP::Request') ) {
-        my $uri = $req->uri;
-        if ( $self->service_url =~ /\/$/ && $uri =~ /^\// ) {
-            $uri =~ s/^\///;
-        }
-        $req->uri( $self->service_url . $uri );
+        $req->uri( $self->_construct_uri( $req->uri ) );
     }
     elsif ( $req->isa('Plack::Request') ) {
-        my $uri = $req->path;
-        if ( $self->service_url =~ /\/$/ && $uri =~ /^\// ) {
-            $uri =~ s/^\///;
-        }
         $req = HTTP::Request->new(
             $req->method,
-            ($self->service_url . $uri),
+            $self->_construct_uri( $req->path ),
             $req->headers,
             $req->content
         );
@@ -120,6 +112,14 @@ sub send_service_call {
     $self->_set_nonce( $nonce );
 
     return $res;
+}
+
+sub _construct_uri {
+    my ($self, $uri) = @_;
+    if ( $self->service_url =~ /\/$/ && $uri =~ /^\// ) {
+        $uri =~ s/^\///;
+    }
+    return $self->service_url . $uri;
 }
 
 sub _generate_auth_header {
