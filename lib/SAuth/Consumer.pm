@@ -41,6 +41,11 @@ sub process_access_grant {
     $self->access_grant( SAuth::Core::AccessGrant->from_json( $access_grant ) );
 }
 
+sub has_valid_access_grant {
+    my $self = shift;
+    $self->has_access_grant && $self->access_grant->is_valid ? 1 : 0
+}
+
 sub generate_token_hmac {
     my ($self, $nonce) = @_;
     hmac_digest(
