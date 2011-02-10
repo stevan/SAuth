@@ -44,8 +44,9 @@ isa_ok($provider, 'SAuth::Provider');
 ## .....................................................
 
 {
+    my $uid = 'http://www.example.org';
     my $key = $provider->create_key(
-        uid                => 'http://www.example.org',
+        uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
         expires            => DateTime->new( year => 2001 ),
@@ -61,69 +62,10 @@ isa_ok($provider, 'SAuth::Provider');
 
     like(exception {
         SAuth::Consumer->new(
-            key => $provider->get_key_for('http://www.example.org'),
+            key => $provider->get_key_for( $uid ),
         )
     }, qr/The key is invalid/,
     '... cannot create a consumer with an invalid key');
-}
-
-## .....................................................
-## Check the error handler on the access request
-## .....................................................
-
-{
-    my $key = $provider->create_key(
-        uid                => 'http://www.example.tv',
-        capabilities       => [qw[ read update ]],
-        allow_refresh      => 1,
-        expires            => DateTime->new( year => 2012 ),
-        token_max_lifespan => 60
-    );
-    isa_ok($key, 'SAuth::Core::Key');
-
-    my $consumer = SAuth::Consumer->new( key => $key );
-    isa_ok($consumer, 'SAuth::Consumer');
-
-    my $access_request = $consumer->create_access_request(
-        access_for     => [qw[ read ]],
-        token_lifespan => 30
-    );
-    isa_ok($access_request, 'SAuth::Consumer::RequestWrapper');
-
-    like(exception{
-        $provider->process_access_request(
-            uid       => 'http://www.examples.tv',
-            hmac      => $access_request->hmac,
-            timestamp => $access_request->timestamp,
-            body      => $access_request->body->to_json
-        );
-    }, qr/There is no key for the UID \(http\:\/\/www\.examples\.tv\)/, '... got the expection we expected');
-
-    like(exception{
-        $provider->process_access_request(
-            uid       => 'http://www.example.tv',
-            hmac      => $access_request->hmac . 'junk',
-            timestamp => $access_request->timestamp,
-            body      => $access_request->body->to_json
-        );
-    }, qr/Invalid Access Request \- HMAC Verification Fail/, '... got the expection we expected');
-
-    {
-        my $bad_access_request = SAuth::Consumer::RequestWrapper->new(
-            key       => $key,
-            body      => $access_request->body,
-            timestamp => 100, # one hundred seconds after the epoch
-        );
-
-        like(exception{
-            $provider->process_access_request(
-                uid       => 'http://www.example.tv',
-                hmac      => $bad_access_request->hmac,
-                timestamp => $bad_access_request->timestamp,
-                body      => $bad_access_request->body->to_json
-            );
-        }, qr/Invalid Access Request \- Request Expired/, '... got the expection we expected');
-    }
 }
 
 ## .....................................................
@@ -132,8 +74,9 @@ isa_ok($provider, 'SAuth::Provider');
 ## .....................................................
 
 {
+    my $uid = 'http://www.example.com';
     my $key = $provider->create_key(
-        uid                => 'http://www.example.com',
+        uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
         expires            => DateTime->now,
@@ -174,8 +117,9 @@ isa_ok($provider, 'SAuth::Provider');
 ## .....................................................
 
 {
+    my $uid = 'http://www.example.info';
     my $key = $provider->create_key(
-        uid                => 'http://www.example.info',
+        uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
         expires            => DateTime->now,
@@ -199,7 +143,7 @@ isa_ok($provider, 'SAuth::Provider');
     isa_ok($access_request, 'SAuth::Consumer::RequestWrapper');
 
     my $access_grant = $provider->process_access_request(
-        uid       => 'http://www.example.info',
+        uid       => $uid,
         hmac      => $access_request->hmac,
         timestamp => $access_request->timestamp,
         body      => $access_request->body->to_json
@@ -226,8 +170,9 @@ isa_ok($provider, 'SAuth::Provider');
 ## .....................................................
 
 {
+    my $uid = 'http://www.example.net';
     my $key = $provider->create_key(
-        uid                => 'http://www.example.net',
+        uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
         expires            => DateTime->new( year => 2012 ),
@@ -251,7 +196,7 @@ isa_ok($provider, 'SAuth::Provider');
     isa_ok($access_request, 'SAuth::Consumer::RequestWrapper');
 
     my $access_grant = $provider->process_access_request(
-        uid       => 'http://www.example.net',
+        uid       => $uid,
         hmac      => $access_request->hmac,
         timestamp => $access_request->timestamp,
         body      => $access_request->body->to_json
@@ -266,7 +211,7 @@ isa_ok($provider, 'SAuth::Provider');
     diag("wait 2 seconds ...");
     sleep(2);
 
-    ok($consumer->key->is_valid, '... the key is no longer valid');
+    ok($consumer->key->is_valid, '... the key is still longer valid');
     ok(!$consumer->has_valid_access_grant, '... the access grant is no longer valid');
 
     like(exception{

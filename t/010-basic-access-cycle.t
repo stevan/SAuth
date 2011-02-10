@@ -43,9 +43,11 @@ isa_ok($provider, 'SAuth::Provider');
 ## Create a key for a consumer
 ## .....................................................
 
+my $uid = 'http://www.example.org';
+
 {
     my $key = $provider->create_key(
-        uid                => 'http://www.example.org',
+        uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
         expires            => DateTime->new( day => 20, month => 12, year => 2012 ),
@@ -59,7 +61,7 @@ isa_ok($provider, 'SAuth::Provider');
 ## .....................................................
 
 my $consumer = SAuth::Consumer->new(
-    key => $provider->get_key_for('http://www.example.org'),
+    key => $provider->get_key_for($uid),
 );
 isa_ok($consumer, 'SAuth::Consumer');
 
@@ -84,7 +86,7 @@ isa_ok($access_request->body, 'SAuth::Core::AccessRequest');
 ## .....................................................
 
 my $access_grant = $provider->process_access_request(
-    uid       => 'http://www.example.org',
+    uid       => $uid,
     hmac      => $access_request->hmac,
     timestamp => $access_request->timestamp,
     body      => $access_request->body->to_json

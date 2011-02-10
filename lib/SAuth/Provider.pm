@@ -95,10 +95,14 @@ sub process_access_request {
         hmac      => { isa => 'Str' },
     );
 
-    confess "There is no key for the UID ($uid)"
-        unless $self->has_key_for( $uid );
+    ($self->has_key_for( $uid ))
+        || confess "There is no key for the UID ($uid)";
 
-    my $key    = $self->get_key_for( $uid );
+    my $key = $self->get_key_for( $uid );
+
+    ($key->is_valid)
+        || confess "The key for UID ($uid) is not valid";
+
     my $digest = hmac_digest( $key->shared_secret, $timestamp, $body );
 
     if ( $hmac eq $digest ) {
@@ -160,21 +164,28 @@ sub authenticate {
         nonce => { isa => 'Str' },
     );
 
+    ($self->has_access_grant_for_token( $token ))
+        || confess "There is no access grant for token ($token)";
+
     my $access_grant = $self->get_access_grant_for_token( $token );
-    my $key          = $self->get_key_for( $access_grant->uid );
-    my $digest       = hmac_digest( $key->shared_secret, $token, $nonce );
 
-    if ( $digest eq $hmac ) {
+    ($access_grant->is_valid)
+        || confess "The access grant for token ($token) is not valid";
 
-        unless ( $access_grant->is_valid ) {
-            confess "Authentication Fail - Access Grant Expired";
-        }
+    ($self->has_key_for( $access_grant->uid ))
+        || confess "There is no key for the UID (" . $access_grant->uid . ")";
 
-        return $self->generate_nonce;
-    }
-    else {
-        confess "Authentication Fail - HMAC Verification Fail";
-    }
+    my $key = $self->get_key_for( $access_grant->uid );
+
+    ($key->is_valid)
+        || confess "The key for UID (" . $access_grant->uid . ") is not valid";
+
+    my $digest = hmac_digest( $key->shared_secret, $token, $nonce );
+
+    ( $digest eq $hmac )
+        || confess "Authentication Fail - HMAC Verification Fail";
+
+    return $self->generate_nonce;
 }
 
 ## Util methods
