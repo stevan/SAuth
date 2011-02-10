@@ -34,24 +34,27 @@ has [ 'provider_url', 'service_url' ] => (
 sub send_access_request {
     my $self = shift;
 
-    my $access_request = $self->consumer->create_access_request( @_ );
+    unless ( $self->consumer->has_access_grant ) {
 
-    my $res = $self->plack_client->request(
-        POST(
-            ($self->provider_url . "/request_access"),
-            [
-                uid       => $self->consumer->key->uid,
-                hmac      => $access_request->hmac,
-                timestamp => $access_request->timestamp,
-                body      => $access_request->body->to_json
-            ]
-        )
-    );
+        my $access_request = $self->consumer->create_access_request( @_ );
 
-    confess "Access Request failed : " . $res->content
-        if $res->status != 200;
+        my $res = $self->plack_client->request(
+            POST(
+                ($self->provider_url . "/request_access"),
+                [
+                    uid       => $self->consumer->key->uid,
+                    hmac      => $access_request->hmac,
+                    timestamp => $access_request->timestamp,
+                    body      => $access_request->body->to_json
+                ]
+            )
+        );
 
-    $self->consumer->process_access_grant( @{ $res->body } );
+        confess "Access Request failed : " . $res->content
+            if $res->status != 200;
+
+        $self->consumer->process_access_grant( @{ $res->body } );
+    }
 
     $self->_get_nonce;
 
