@@ -48,6 +48,11 @@ sub has_capability {
     $self->_find_capability( sub { $_ eq $capability } ) ? 1 : 0;
 }
 
+sub is_valid {
+    my $self = shift;
+    ( DateTime->compare( DateTime->now, $self->expires ) <= 0 ) ? 1 : 0
+}
+
 sub to_json {
     my $self = shift;
     encode_json({
