@@ -31,7 +31,7 @@ has [ 'provider_url', 'service_url' ] => (
     required => 1,
 );
 
-sub send_access_request {
+sub prepare_access_token {
     my $self = shift;
 
     unless ( $self->consumer->has_valid_access_grant ) {

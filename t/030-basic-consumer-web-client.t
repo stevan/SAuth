@@ -85,7 +85,7 @@ ok(!$client->nonce, '... we dont have a nonce');
 ok(!$client->is_ready, '... we are not ready');
 
 is(exception {
-    $client->send_access_request(
+    $client->prepare_access_token(
         access_for     => [qw[ read ]],
         token_lifespan => (20 * 60 * 60)
     );

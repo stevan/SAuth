@@ -100,7 +100,7 @@ my $client = SAuth::Web::Consumer::Client->new(
 ## ----------------------------------------------------
 
 is(exception {
-    $client->send_access_request(
+    $client->prepare_access_token(
         access_for     => [qw[ read ]],
         token_lifespan => (20 * 60 * 60)
     );
