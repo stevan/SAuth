@@ -82,6 +82,7 @@ my $client = SAuth::Web::Consumer::Client->new(
 
 ok(!$client->consumer->access_grant, '... no access grant yet');
 ok(!$client->nonce, '... we dont have a nonce');
+ok(!$client->is_ready, '... we are not ready');
 
 is(exception {
     $client->send_access_request(
@@ -92,6 +93,7 @@ is(exception {
 
 isa_ok($client->consumer->access_grant, 'SAuth::Core::AccessGrant');
 ok($client->nonce, '... we have a nonce');
+ok($client->is_ready, '... we are ready now');
 
 foreach ( 0 .. 3 ) {
     my $res = $client->send_service_call( GET "/foo" );
