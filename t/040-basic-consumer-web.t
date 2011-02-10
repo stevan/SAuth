@@ -30,6 +30,11 @@ my $DB_FILE = file("$FindBin::Bin/data/db");
 
 unlink $DB_FILE;
 
+## ----------------------------------------------------
+## This should have been done once, when the app was
+## first registered with the service
+## ----------------------------------------------------
+
 my $provider = SAuth::Provider->new(
     key_store    => SAuth::Provider::KeyStore::SQLite->new( db_file => $DB_FILE ),
     token_store  => SAuth::Provider::TokenStore::SQLite->new( db_file => $DB_FILE ),
@@ -49,7 +54,10 @@ my $key = $provider->create_key(
     token_max_lifespan => (24 * 60 * 60)
 );
 
-# .........
+## ----------------------------------------------------
+## This is our actual service wrapper, so this is
+## what is being protected
+## ----------------------------------------------------
 
 my $provider_app = builder {
     mount '/sauth/' => SAuth::Web::Provider->new( provider => $provider )->to_app;
@@ -68,10 +76,16 @@ my $provider_app = builder {
     );
 };
 
+## ----------------------------------------------------
+## Now this is on the app side, we tell the client
+## where to find the providers, and initialize a
+## consumer object for it;
+## ----------------------------------------------------
+
 my $client = SAuth::Web::Consumer::Client->new(
+    consumer     => SAuth::Consumer->new( key => $key ),
     provider_url => 'psgi-local://test_app/sauth/',
     service_url  => 'psgi-local://test_app/-/',
-    consumer     => SAuth::Consumer->new( key => $key ),
     plack_client => Plack::Client->new(
         'psgi-local' => {
             apps => {
@@ -81,26 +95,21 @@ my $client = SAuth::Web::Consumer::Client->new(
     )
 );
 
-my $consumer = SAuth::Web::Consumer->new(
-    consumer_client => $client,
-    init_url        => '/init',
-    service_url     => '/service',
-);
+## ----------------------------------------------------
+## aquire the access token ...
+## ----------------------------------------------------
+
+is(exception {
+    $client->send_access_request(
+        access_for     => [qw[ read ]],
+        token_lifespan => (20 * 60 * 60)
+    );
+}, undef, '... access request sent successfully');
 
 test_psgi(
-    app    => $consumer->to_app,
+    app    => SAuth::Web::Consumer->new( client => $client, service_uri => '/service' )->to_app,
     client => sub {
         my $cb = shift;
-
-        my $req = POST(
-            "http://localhost/init/",
-            [
-                access_for     => 'read',
-                token_lifespan => (20 * 60 * 60)
-            ]
-        );
-        my $res = $cb->($req);
-        is($res->code, 200, '... got the right status for session init');
 
         foreach ( 0 .. 3 ) {
             my $req = GET( "http://localhost/service/" . $_ );
