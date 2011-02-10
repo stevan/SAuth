@@ -12,7 +12,7 @@ use DateTime;
 use Path::Class;
 use Plack::Client;
 use Plack::Builder;
-use HTTP::Request::Common qw[ GET ];
+use HTTP::Request::Common qw[ GET POST DELETE ];
 
 BEGIN {
     use_ok('SAuth::Provider');
@@ -22,7 +22,7 @@ BEGIN {
 
     use_ok('SAuth::Web::Provider');
     use_ok('SAuth::Web::Provider::AuthMiddleware');
-    use_ok('SAuth::Web::Consumer');
+    use_ok('SAuth::Web::Consumer::Client');
 }
 
 my $DB_FILE = file("$FindBin::Bin/data/db");
@@ -56,12 +56,18 @@ my $app = builder {
         provider => $provider,
         realm    => 'protected-service',
         app      => sub {
-            return [ 200, [], ["HORRAY!"]];
+            my $r = Plack::Request->new( shift );
+            return [
+                200, [], [
+                    'METHOD: ' . $r->method . ';' .
+                    'PATH: ' . $r->path
+                ]
+            ];
         }
     );
 };
 
-my $client = SAuth::Web::Consumer->new(
+my $client = SAuth::Web::Consumer::Client->new(
     provider_url => 'psgi-local://test_app/sauth/',
     service_url  => 'psgi-local://test_app/-/',
     consumer     => SAuth::Consumer->new( key => $key ),
@@ -74,6 +80,9 @@ my $client = SAuth::Web::Consumer->new(
     )
 );
 
+ok(!$client->consumer->access_grant, '... no access grant yet');
+ok(!$client->nonce, '... we dont have a nonce');
+
 is(exception {
     $client->send_access_request(
         access_for     => [qw[ read ]],
@@ -81,12 +90,31 @@ is(exception {
     );
 }, undef, '... access request sent successfully');
 
-foreach ( 0 .. 10 ) {
-    my $res = $client->send_service_call( GET "/" );
+isa_ok($client->consumer->access_grant, 'SAuth::Core::AccessGrant');
+ok($client->nonce, '... we have a nonce');
+
+foreach ( 0 .. 3 ) {
+    my $res = $client->send_service_call( GET "/foo" );
     is($res->code, 200, '... got the right status');
     my $auth_info_header = $res->header('Authentication-Info');
     like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
-    is($res->body->[0], 'HORRAY!', '... got the expected content');
+    is($res->body->[0], 'METHOD: GET;PATH: /foo', '... got the expected content');
+}
+
+foreach ( 0 .. 3 ) {
+    my $res = $client->send_service_call( POST "/bar/" . $_ );
+    is($res->code, 200, '... got the right status');
+    my $auth_info_header = $res->header('Authentication-Info');
+    like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
+    is($res->body->[0], 'METHOD: POST;PATH: /bar/' . $_, '... got the expected content');
+}
+
+foreach ( 0 .. 3 ) {
+    my $res = $client->send_service_call( DELETE "/baz/" . $_ . '/gorch' );
+    is($res->code, 200, '... got the right status');
+    my $auth_info_header = $res->header('Authentication-Info');
+    like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
+    is($res->body->[0], 'METHOD: DELETE;PATH: /baz/' . $_ . '/gorch', '... got the expected content');
 }
 
 done_testing;

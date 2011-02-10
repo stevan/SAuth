@@ -82,7 +82,7 @@ test_psgi(
                 ]
             );
             my $res = $cb->($req);
-            is($res->code, 200, '... got the right status for query-ing open slots');
+            is($res->code, 200, '... got the right status for request_access');
 
             $access_grant = SAuth::Core::AccessGrant->from_json( $res->content );
             isa_ok($access_grant, 'SAuth::Core::AccessGrant');
@@ -113,7 +113,7 @@ test_psgi(
                 )
             );
             my $res = $cb->($req);
-            is($res->code, 200, '... got the right status for query-ing open slots');
+            is($res->code, 200, '... got the right status for calling wrapped service');
             my $auth_info_header = $res->header('Authentication-Info');
             like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
             is($res->content, 'HORRAY!', '... got the expected content');
