@@ -34,7 +34,7 @@ has [ 'provider_url', 'service_url' ] => (
 sub send_access_request {
     my $self = shift;
 
-    unless ( $self->consumer->has_access_grant ) {
+    unless ( $self->consumer->has_valid_access_grant ) {
 
         my $access_request = $self->consumer->create_access_request( @_ );
 
