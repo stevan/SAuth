@@ -76,7 +76,7 @@ sub _get_nonce {
 
 sub is_ready {
     my $self = shift;
-    $self->nonce && $self->consumer->has_access_grant ? 1 : 0
+    $self->nonce && $self->consumer->has_valid_access_grant ? 1 : 0
 }
 
 sub send_service_call {
