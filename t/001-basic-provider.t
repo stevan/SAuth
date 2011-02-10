@@ -67,6 +67,7 @@ done_testing;
 
 sub check_key {
     my $key = shift;
+    ok($key->is_valid, '... the key is valid');
     is($key->uid, 'http://www.example.org', '... got the right uid');
     is_deeply($key->capabilities, [qw[ read update ]], '... got the right capabilities');
     ok($key->allow_refresh, '... got the right allow_refresh');
