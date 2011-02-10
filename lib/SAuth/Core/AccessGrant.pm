@@ -2,6 +2,7 @@ package SAuth::Core::AccessGrant;
 use Moose;
 
 use SAuth::Util;
+use DateTime;
 
 has 'uid' => (
     is       => 'ro',
@@ -32,6 +33,11 @@ has 'can_refresh' => (
     isa      => 'Bool',
     required => 1
 );
+
+sub is_valid {
+    my $self = shift;
+    ( DateTime->compare( DateTime->now, $self->timeout ) <= 0 ) ? 1 : 0
+}
 
 sub to_json {
     my $self = shift;
