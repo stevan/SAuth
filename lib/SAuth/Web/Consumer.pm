@@ -8,13 +8,13 @@ use SAuth::Web::Consumer::Client;
 
 extends 'Plack::Component';
 
-has 'consumer_client' => (
+has 'client' => (
     is       => 'ro',
     isa      => 'SAuth::Web::Consumer::Client',
     required => 1,
 );
 
-has [ 'init_url', 'service_url' ] => (
+has 'service_uri' => (
     is       => 'ro',
     isa      => 'Str',
     required => 1
@@ -24,37 +24,18 @@ has '_app' => ( is => 'rw' );
 
 sub prepare_app {
     my $self = shift;
+
+    confess "You must first aquire an access token before intiailizing this application"
+        unless $self->client->is_ready;
+
     my $url_map = Plack::App::URLMap->new;
     $url_map->map(
-        $self->init_url => sub {
-            my $r = Plack::Request->new( shift );
-
-            my $error;
-            try {
-                $self->consumer_client->send_access_request(
-                    token_lifespan => $r->param('token_lifespan'),
-                    access_for     => [ $r->parameters->get_all('access_for') ]
-                );
-            } catch {
-                $error = $_;
-            };
-
-            return HTTP::Throwable::InternalServerError->new(
-                show_stack_trace => 0,
-                message          => $error
-            )->as_psgi
-                if $error;
-
-            return [ 200, [], [] ];
-        }
-    );
-    $url_map->map(
-        $self->service_url => sub {
+        $self->service_uri => sub {
             my $r = Plack::Request->new( shift );
 
             my ($resp, $error);
             try {
-                $resp = $self->consumer_client->send_service_call( $r );
+                $resp = $self->client->send_service_call( $r );
             } catch {
                 $error = $_;
             };
