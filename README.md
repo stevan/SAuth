@@ -18,7 +18,9 @@ interplay.
 - The user logs into the web-app, knowing nothing more then that. They are
   authenticated within that application and all is well.
 
-- The web-app itself now needs to ask the web-service for a token.
+- The web-app itself now needs to ask the web-service for a token, or
+  loads a pre-existing token somehow (in which case you would skip the
+  next several steps).
 
 - The web-app and the web-service have a pre-arranged relationship and the
   web-app has been given a key from the web-service.
@@ -42,14 +44,13 @@ interplay.
 
 - The web-service then stores the token and access-grant in the token store.
 
-- The web-service sends the web-app back the access-grant and a nonce.
+- The web-service sends the web-app back the access-grant.
 
-- The web-app checks the access-grant against it's request and does whatever
-  is appropriate.
+- The web-app also then acuires a nonce.
 
 - On each request to the web-service from the web-app, the web-app must include
-  the token and the a hash of the token (sent back in the access-grant), the key
-  and the current nonce.
+  the token and the a hash digest of (token + the key + the current nonce) and
+  the current nonce.
 
 - On each response from the web-service, a new nonce is sent to be used for
   the next request.
@@ -66,9 +67,9 @@ a client of the web service
 another end-point, usually the owner of some resources
 
 *key* -
-a hash of some kind given to a web-app by a web-service to confirm their relationship
-with one another. The key is their shared secret. A web-app will typically only have
-one key, while a web-service will have given out many keys.
+a UUID given to a web-app by a web-service to confirm their relationship with one
+another. The key is their shared secret. A web-app will typically only have one
+key, while a web-service will have given out many keys.
 
 *key-store* -
 a mapping held by the web-service that maps the keys to a set of capabilities. Those
@@ -91,11 +92,11 @@ capabilities might look something like:
         // does this key allow tokens to
         // be refreshed? Or is this a one
         // time access
-        allow-refresh : {true,false},
+        allow_refresh : {true,false},
         // the date at which this key expires
         expires : <date>,
         // the maximun length of a tokens life
-        token-max-lifespan : <duration>
+        token_max_lifespan : <duration>
     }
 
 *access-request* -
@@ -106,7 +107,7 @@ what it is they want to do. An example might be:
         uid : http://my.webapp.com/, // they key identifier so that the service knows
                                      // what to lookup
         access_for : [ read, edit ], // asking for access to read and edit resources
-        token-lifespan : <duration>  // requested timespan for the token (optional: if
+        token_lifespan : <duration>  // requested timespan for the token (optional: if
                                      // not supplied, max will be given)
     }
 
@@ -118,39 +119,18 @@ An example might be:
         token : <session-token>,   // the token which is then expected to be sent with
                                    // each request
         access_to : [ read ],      // the capabilities granted (usually the same as
-                                   // access-request, but might be less)
+                                   // access-request)
         timeout : <duration>       // the timespan in which the token is valid
-        can-refresh : {true,false} // lets them know if they can expect to refresh the token
+        can_refresh : {true,false} // lets them know if they can expect to refresh the token
                                    // without re-auth
     }
 
 *token* -
-a hash of some kind given by the web-service in response to an access-request. It represents
-the granting of an access-request.
+a UUID given by the web-service in response to an access-request. It represents the granting
+of an access-request.
 
 *token-store* -
-a mapping held by the web-service that maps the tokens to a specific access-grant as well
-as the current nonce being used.
-
-## Implementation Notes
-
-Much of this system can be implemented in terms of middleware.
-
-The middleware handles the initial access-{request, grant} interaction completely
-using it's own end-point URL.
-
-Once a token is created, the middleware only checks the hashed token and then deposits
-the access-grant info into the $env for the actual web-service to do with what it wishes.
-
-It also creates a new nonce for the next request, which it passes back to the client.
-
-The web-app always sends the following header:
-
-    Authorization : <name-of-this-schema> <base64-url-encoded (token + ':' + hmac)>
-
-While the middleware wrapping the web-service sends back this header:
-
-    Authentication-Info : nextnonce=<nonce>
+a mapping held by the web-service that maps the tokens to a specific access-grant.
 
 ## Installation
 
@@ -174,6 +154,7 @@ This module requires these other modules and libraries:
     Plack::App::Path::Router::PSGI
     Path::Router
     HTTP::Throwable
+    HTTP::Request::Common
 
     DateTime
     DateTime::Duration
@@ -191,11 +172,11 @@ This module requires these other modules and libraries:
     List::AllUtils
     Sub::Exporter
     Try::Tiny
+    Devel::PartialDump
 
     Test::More
     Test::Moose
     Test::Fatal
-    HTTP::Request::Common
 
 ## Copyright and License
 
