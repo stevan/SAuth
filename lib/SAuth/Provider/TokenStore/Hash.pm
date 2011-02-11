@@ -21,6 +21,8 @@ sub add_access_grant_for_token {
     $self->access_grants->{ $access_grant->token } = $access_grant;
 }
 
+*update_access_grant_for_token = \&add_access_grant_for_token;
+
 __PACKAGE__->meta->make_immutable;
 
 no Moose; 1;

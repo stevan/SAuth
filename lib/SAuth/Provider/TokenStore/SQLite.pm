@@ -33,6 +33,16 @@ sub get_access_grant_for_token {
     SAuth::Core::AccessGrant->from_json( $access_grant_json );
 }
 
+sub update_access_grant_for_token {
+    my ($self, $access_grant) = @_;
+    $self->dbh->do(
+        'UPDATE access_grants SET token = ?, access_grant = ?',
+        {},
+        $access_grant->token,
+        $access_grant->to_json
+    );
+}
+
 sub add_access_grant_for_token {
     my ($self, $access_grant) = @_;
     $self->dbh->do(
