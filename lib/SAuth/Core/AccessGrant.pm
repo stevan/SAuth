@@ -44,7 +44,7 @@ sub is_valid {
 sub refresh {
     my ($self, $timeout) = @_;
     ($self->can_refresh)
-        || SAuth::Core::Error->throw("Cannot refresh this access grant");
+        || SAuth::Core::Error::CannotRefresh->throw("Cannot refresh this access grant");
     $self->_update_timeout( $timeout );
     $self;
 }

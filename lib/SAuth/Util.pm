@@ -9,6 +9,7 @@ use SAuth::Core::Error::KeyNotFound;
 use SAuth::Core::Error::InvalidAccessGrant;
 use SAuth::Core::Error::AccessGrantNotFound;
 use SAuth::Core::Error::HMACVerificationFail;
+use SAuth::Core::Error::CannotRefresh;
 
 use Digest       ();
 use JSON::XS     ();
