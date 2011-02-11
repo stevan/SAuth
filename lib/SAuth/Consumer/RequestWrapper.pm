@@ -1,5 +1,6 @@
 package SAuth::Consumer::RequestWrapper;
 use Moose;
+use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
 
 use SAuth::Util;

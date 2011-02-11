@@ -1,5 +1,6 @@
 package SAuth::Web::Consumer;
 use Moose;
+use MooseX::StrictConstructor;
 use MooseX::NonMoose;
 
 use SAuth::Web::Consumer::Client;

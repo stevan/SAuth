@@ -1,5 +1,6 @@
 package SAuth::Web::Provider::AuthMiddleware;
 use Moose;
+use MooseX::StrictConstructor;
 use MooseX::NonMoose;
 
 use Try::Tiny;
@@ -8,6 +9,8 @@ use HTTP::Throwable::InternalServerError;
 use SAuth::Util;
 
 extends 'Plack::Middleware';
+
+has 'app' => ( is => 'ro' ); # to make MX::StrictConstructor happy
 
 has 'provider' => (
     is       => 'ro',

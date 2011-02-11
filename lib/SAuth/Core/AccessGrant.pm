@@ -1,5 +1,6 @@
 package SAuth::Core::AccessGrant;
 use Moose;
+use MooseX::StrictConstructor;
 
 use SAuth::Util;
 use DateTime;

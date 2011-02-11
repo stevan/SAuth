@@ -1,5 +1,6 @@
 package SAuth::Core::AccessRequest;
 use Moose;
+use MooseX::StrictConstructor;
 
 use SAuth::Util;
 

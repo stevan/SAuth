@@ -1,5 +1,6 @@
 package SAuth::Web::Provider;
 use Moose;
+use MooseX::StrictConstructor;
 
 use SAuth::Util;
 

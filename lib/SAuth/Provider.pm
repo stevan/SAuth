@@ -1,5 +1,6 @@
 package SAuth::Provider;
 use Moose;
+use MooseX::StrictConstructor;
 use MooseX::Params::Validate;
 
 use SAuth::Util;

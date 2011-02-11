@@ -1,5 +1,6 @@
 package SAuth::Core::Key;
 use Moose;
+use MooseX::StrictConstructor;
 
 use SAuth::Util;
 
