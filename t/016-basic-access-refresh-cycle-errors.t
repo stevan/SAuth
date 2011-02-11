@@ -61,15 +61,20 @@ isa_ok($provider, 'SAuth::Provider');
     }, qr/No current access grant to refresh/, '... got the expection expected');
 
     # make a unrefreshable access grant ...
-    $consumer->access_grant(
-        SAuth::Core::AccessGrant->new(
-            uid         => $uid,
-            token       => 'skasdjkldfsajklsadflk',
-            access_to   => [qw[ read ]],
-            timeout     => DateTime->new( year => 2035 ),
-            can_refresh => 0,
-        )
+
+    my $access_grant = SAuth::Core::AccessGrant->new(
+        uid         => $uid,
+        token       => 'skasdjkldfsajklsadflk',
+        access_to   => [qw[ read ]],
+        timeout     => DateTime->new( year => 2035 ),
+        can_refresh => 0,
     );
+
+    like(exception {
+        $access_grant->refresh( DateTime->new( year => 2035 ) )
+    }, qr/Cannot refresh this access grant/, '... got the expection expected');
+
+    $consumer->access_grant( $access_grant );
 
     like(exception {
         $consumer->create_refresh_request( token_lifespan => 100 )
@@ -143,6 +148,37 @@ isa_ok($provider, 'SAuth::Provider');
     like(exception {
         $consumer->create_refresh_request( token_lifespan => 100 )
     }, qr/The key is invalid/, '... got the expection expected');
+
+}
+
+{
+    my $uid = 'http://www.example.edu';
+    my $key = $provider->create_key(
+        uid                => $uid,
+        capabilities       => [qw[ read update ]],
+        allow_refresh      => 1,
+        expires            => DateTime->new( year => 2012 ),
+        token_max_lifespan => 60
+    );
+    isa_ok($key, 'SAuth::Core::Key');
+
+    my $refresh_request = SAuth::Consumer::RequestWrapper->new(
+        key  => $key,
+        body => SAuth::Core::AccessRefresh->new(
+            uid            => $uid,
+            token          => 'abcdefghijklm',
+            token_lifespan => 10
+        )
+    );
+
+    like(exception {
+        $provider->process_access_refresh(
+            uid       => $uid,
+            hmac      => $refresh_request->hmac,
+            timestamp => $refresh_request->timestamp,
+            body      => $refresh_request->body->to_json
+        );
+    }, qr/There is no access grant for token \(abcdefghijklm\)/, '... got the expection expected');
 
 }
 
