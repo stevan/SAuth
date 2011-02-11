@@ -3,6 +3,8 @@ package SAuth::Util;
 use strict;
 use warnings;
 
+use SAuth::Core::Error;
+
 use Digest       ();
 use JSON::XS     ();
 use MIME::Base64 ();

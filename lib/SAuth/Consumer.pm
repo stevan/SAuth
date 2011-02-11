@@ -16,7 +16,7 @@ has 'key' => (
     required => 1,
     trigger  => sub {
         ((shift)->key->is_valid)
-            || confess "The key is invalid";
+            || SAuth::Core::Error->throw("The key is invalid");
     }
 );
 
@@ -33,7 +33,7 @@ sub create_access_request {
     );
 
     ($self->key->is_valid)
-        || confess "The key is invalid";
+        || SAuth::Core::Error->throw("The key is invalid");
 
     SAuth::Consumer::RequestWrapper->new(
         key  => $self->key,
@@ -51,16 +51,16 @@ sub create_refresh_request {
     );
 
     ($self->has_access_grant)
-        || confess "No current access grant to refresh";
+        || SAuth::Core::Error->throw("No current access grant to refresh");
 
     ($self->access_grant->can_refresh)
-        || confess "The current access grant does not allow refreshing";
+        || SAuth::Core::Error->throw("The current access grant does not allow refreshing");
 
     ($self->key->is_valid)
-        || confess "The key is invalid";
+        || SAuth::Core::Error->throw("The key is invalid");
 
     ($self->key->allow_refresh)
-        || confess "The key does not allow refreshing";
+        || SAuth::Core::Error->throw("The key does not allow refreshing");
 
     SAuth::Consumer::RequestWrapper->new(
         key  => $self->key,
@@ -86,13 +86,13 @@ sub generate_token_hmac {
     my ($self, $nonce) = @_;
 
     (defined $nonce)
-        || confess "Cannot generate token hmac without a nonce";
+        || SAuth::Core::Error->throw("Cannot generate token hmac without a nonce");
 
     ($self->has_valid_access_grant)
-        || confess "Cannot generate token hmac without a valid access grant";
+        || SAuth::Core::Error->throw("Cannot generate token hmac without a valid access grant");
 
     ($self->key->is_valid)
-        || confess "Cannot generate token hmac with an invalid key";
+        || SAuth::Core::Error->throw("Cannot generate token hmac with an invalid key");
 
     hmac_digest(
         $self->key->shared_secret,

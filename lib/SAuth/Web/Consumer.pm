@@ -3,6 +3,7 @@ use Moose;
 use MooseX::StrictConstructor;
 use MooseX::NonMoose;
 
+use SAuth::Util;
 use SAuth::Web::Consumer::Client;
 
 extends 'Plack::Component';
@@ -15,7 +16,7 @@ has 'client' => (
 
 sub prepare_app {
     my $self = shift;
-    confess "The consumer client is not ready"
+    SAuth::Core::Error->throw("The consumer client is not ready")
         unless $self->client->is_ready;
 }
 

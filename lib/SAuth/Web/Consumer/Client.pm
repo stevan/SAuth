@@ -52,7 +52,7 @@ sub prepare_access_token {
             )
         );
 
-        confess "Access Request failed : " . dump($res)
+        SAuth::Core::Error->throw("Access Request failed : " . dump($res))
             if $res->status != 200;
 
         $self->consumer->process_access_grant( @{ $res->body } );
@@ -70,7 +70,7 @@ sub _get_nonce {
         POST( $self->_construct_uri( $self->provider_uri, "/generate_nonce" ) )
     );
 
-    confess "Nonce fetch failed : "  . dump($res)
+    SAuth::Core::Error->throw("Nonce fetch failed : "  . dump($res))
         if $res->status != 200;
 
     $self->_set_nonce( $res->body->[0] );

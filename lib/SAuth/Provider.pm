@@ -66,10 +66,10 @@ sub create_key {
 
     foreach my $capability ( @$capabilities ) {
         ( $self->has_capability( $capability ) )
-            || confess "The capability ($capability) is not offered by this provider";
+            || SAuth::Core::Error->throw("The capability ($capability) is not offered by this provider");
     }
 
-    confess "There is already a key for $uid"
+    SAuth::Core::Error->throw("There is already a key for $uid")
         if $self->has_key_for( $uid );
 
     my $key = SAuth::Core::Key->new(
@@ -119,12 +119,12 @@ sub _process_and_verify_request {
     );
 
     ($self->has_key_for( $uid ))
-        || confess "There is no key for the UID ($uid)";
+        || SAuth::Core::Error->throw("There is no key for the UID ($uid)");
 
     my $key = $self->get_key_for( $uid );
 
     ($key->is_valid)
-        || confess "The key for UID ($uid) is not valid";
+        || SAuth::Core::Error->throw("The key for UID ($uid) is not valid");
 
     my $digest = hmac_digest( $key->shared_secret, $timestamp, $body );
 
@@ -135,13 +135,13 @@ sub _process_and_verify_request {
         my $diff  = $now - $stamp;
 
         unless ( DateTime::Duration->compare( $diff, $self->access_request_timestamp_tolerance ) <= 0 ) {
-            confess "Invalid Access Request - Request Expired"
+            SAuth::Core::Error->throw("Invalid Access Request - Request Expired")
         }
 
         return ( $key, $body );
     }
     else {
-        confess "Invalid Access Request - HMAC Verification Fail";
+        SAuth::Core::Error->throw("Invalid Access Request - HMAC Verification Fail");
     }
 }
 
@@ -150,7 +150,7 @@ sub _grant_access {
 
     foreach my $capability ( @{ $request->access_for } ) {
         ($key->has_capability( $capability ))
-            || confess "Cannot grant access for capability ($capability) because it is not allowed by this key";
+            || SAuth::Core::Error->throw("Cannot grant access for capability ($capability) because it is not allowed by this key");
     }
 
     my $token_lifespan = min( $key->token_max_lifespan, $request->token_lifespan );
@@ -174,7 +174,7 @@ sub _refresh_access {
     my ($self, $key, $request) = @_;
 
     ($self->has_access_grant_for_token( $request->token ))
-        || confess "There is no access grant for token (" . $request->token . ")";
+        || SAuth::Core::Error->throw("There is no access grant for token (" . $request->token . ")");
 
     my $access_grant   = $self->token_store->get_access_grant_for_token( $request->token );
     my $token_lifespan = min( $key->token_max_lifespan, $request->token_lifespan );
@@ -199,25 +199,25 @@ sub authenticate {
     );
 
     ($self->has_access_grant_for_token( $token ))
-        || confess "There is no access grant for token ($token)";
+        || SAuth::Core::Error->throw("There is no access grant for token ($token)");
 
     my $access_grant = $self->get_access_grant_for_token( $token );
 
     ($access_grant->is_valid)
-        || confess "The access grant for token ($token) is not valid";
+        || SAuth::Core::Error->throw("The access grant for token ($token) is not valid");
 
     ($self->has_key_for( $access_grant->uid ))
-        || confess "There is no key for the UID (" . $access_grant->uid . ")";
+        || SAuth::Core::Error->throw("There is no key for the UID (" . $access_grant->uid . ")");
 
     my $key = $self->get_key_for( $access_grant->uid );
 
     ($key->is_valid)
-        || confess "The key for UID (" . $access_grant->uid . ") is not valid";
+        || SAuth::Core::Error->throw("The key for UID (" . $access_grant->uid . ") is not valid");
 
     my $digest = hmac_digest( $key->shared_secret, $token, $nonce );
 
     ( $digest eq $hmac )
-        || confess "Authentication Fail - HMAC Verification Fail";
+        || SAuth::Core::Error->throw("Authentication Fail - HMAC Verification Fail");
 
     return $self->generate_nonce;
 }
