@@ -7,6 +7,7 @@ use Try::Tiny;
 use Path::Router;
 use Plack::Request;
 use HTTP::Throwable::InternalServerError;
+use HTTP::Throwable::MethodNotAllowed;
 
 extends 'Plack::App::Path::Router::PSGI';
 
@@ -26,6 +27,18 @@ sub build_router {
         '/request_access',
         target => sub {
             my $r = Plack::Request->new( shift );
+
+            return HTTP::Throwable::MethodNotAllowed->new(
+                allow   => [ 'POST' ],
+                message => 'Only POST is supported'
+            )->as_psgi
+                if $r->method ne 'POST';
+
+            # TODO:
+            # Support sending as JSON, as well as
+            # application/x-www-form-urlencoded,
+            # either way should be fine.
+            # - SL
 
             my ($access_grant, $error);
             try {
