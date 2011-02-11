@@ -48,10 +48,26 @@ sub call {
         };
 
         if ($error) {
-            return HTTP::Throwable::InternalServerError->new(
-                message          => $error,
-                show_stack_trace => 0
-            )->as_psgi;
+
+            if (blessed $error) {
+                # NOTE:
+                # We need to deal with these possible errors
+                # - SAuth::Core::Error::AccessGrantNotFound
+                # - SAuth::Core::Error::InvalidAccessGrant
+                # - SAuth::Core::Error::KeyNotFound
+                # - SAuth::Core::Error::InvalidKey
+                # - SAuth::Core::Error::HMACVerificationFail
+                # All of which represent some kind of auth
+                # failure, so we just return unauthorized
+                # - SL
+                return $self->unauthorized( $error->message );
+            }
+            else {
+                return HTTP::Throwable::InternalServerError->new(
+                    message          => $error,
+                    show_stack_trace => 0
+                )->as_psgi;
+            }
         }
         else {
 
@@ -76,7 +92,9 @@ sub unauthorized {
     return HTTP::Throwable::Unauthorized->new(
         www_authenticate =>
             'SAuth realm="' . $self->realm
-              . '",nonce="' . encode_base64( $self->provider->generate_nonce ) . '"'
+              . '",nonce="' . encode_base64( $self->provider->generate_nonce ) . '"',
+        # provide an optional message
+        (scalar @_ ? (message => shift) : ())
     )->as_psgi;
 }
 

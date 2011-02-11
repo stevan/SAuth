@@ -157,13 +157,16 @@ test_psgi(
             my $req = GET(
                 "http://localhost/-/" => (
                     'Authorization' => 'SAuth ' .
-                    'response="foo' . SAuth::Util::encode_base64(
-                        join ':' => $consumer->access_grant->token, $consumer->generate_token_hmac( $nonce )
+                    'response="' . SAuth::Util::encode_base64(
+                        'foo' . (join ':' => $consumer->access_grant->token, $consumer->generate_token_hmac( $nonce ))
                     ) . '",nonce="' . SAuth::Util::encode_base64( $nonce ) . '"'
                 )
             );
             my $res = $cb->($req);
-            is($res->code, 500, '... got the right status for calling wrapped service with bad response');
+            is($res->code, 401, '... got the right status for calling wrapped service with bad response');
+            my $www_auth_header = $res->header('WWW-Authenticate');
+            like($www_auth_header, qr/^SAuth realm\=\"protected-service\",nonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
+            like($res->content, qr/There is no access grant for token \(.*\)/, '... got the right content');
         }
 
         {
@@ -177,7 +180,10 @@ test_psgi(
                 )
             );
             my $res = $cb->($req);
-            is($res->code, 500, '... got the right status for calling wrapped service with bad nonce');
+            is($res->code, 401, '... got the right status for calling wrapped service with bad nonce');
+            my $www_auth_header = $res->header('WWW-Authenticate');
+            like($www_auth_header, qr/^SAuth realm\=\"protected-service\",nonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
+            like($res->content, qr/Authentication Fail \- HMAC Verification Fail/, '... got the right content');
         }
 
     }

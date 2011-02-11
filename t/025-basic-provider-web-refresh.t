@@ -124,10 +124,28 @@ test_psgi(
             ($nonce) = ($auth_info_header =~ /^nextnonce=\"([a-zA-Z0-9-_]+)\"/);
         }
 
-        diag('wait a second ...');
-        sleep(2);
+        {
+            # mess up the response
+            my $req = GET(
+                "http://localhost/-/" => (
+                    'Authorization' => 'SAuth ' .
+                    'response="' . SAuth::Util::encode_base64(
+                        join ':' => $consumer->access_grant->token, $consumer->generate_token_hmac( $nonce )
+                    ) . '",nonce="' . SAuth::Util::encode_base64( $nonce ) . '"'
+                )
+            );
 
-        ok(!$consumer->has_valid_access_grant, '... no longer have a valid access grant');
+            diag('wait a second ...');
+            sleep(2);
+
+            ok(!$consumer->has_valid_access_grant, '... no longer have a valid access grant');
+
+            my $res = $cb->($req);
+            is($res->code, 401, '... got the right status for calling wrapped service with bad response');
+            my $www_auth_header = $res->header('WWW-Authenticate');
+            like($www_auth_header, qr/^SAuth realm\=\"protected-service\",nonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
+            like($res->content, qr/The access grant for token \(.*\) is not valid/, '... got the right content');
+        }
 
         my $refresh_request = $consumer->create_refresh_request( token_lifespan => (60 * 60) );
 
