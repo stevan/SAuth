@@ -68,8 +68,8 @@ my $app = builder {
 };
 
 my $client = SAuth::Web::Consumer::Client->new(
-    provider_url => 'psgi-local://test_app/sauth/',
-    service_url  => 'psgi-local://test_app/-/',
+    provider_uri => 'psgi-local://test_app/sauth/',
+    service_uri  => 'psgi-local://test_app/-/',
     consumer     => SAuth::Consumer->new( key => $key ),
     plack_client => Plack::Client->new(
         'psgi-local' => {

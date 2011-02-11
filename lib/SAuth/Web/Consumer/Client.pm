@@ -25,7 +25,7 @@ has 'nonce' => (
     writer => '_set_nonce',
 );
 
-has [ 'provider_url', 'service_url' ] => (
+has [ 'provider_uri', 'service_uri' ] => (
     is       => 'ro',
     isa      => 'Str',
     required => 1,
@@ -40,7 +40,7 @@ sub prepare_access_token {
 
         my $res = $self->plack_client->request(
             POST(
-                ($self->provider_url . "/request_access"),
+                $self->_construct_uri( $self->provider_uri, "/request_access" ),
                 [
                     uid       => $self->consumer->key->uid,
                     hmac      => $access_request->hmac,
@@ -65,10 +65,10 @@ sub _get_nonce {
     my $self = shift;
 
     my $res = $self->plack_client->request(
-        POST( $self->provider_url . "/generate_nonce" )
+        POST( $self->_construct_uri( $self->provider_uri, "/generate_nonce" ) )
     );
 
-    confess "Access Request failed : "  . $res->content
+    confess "Nonce fetch failed : "  . dump($res)
         if $res->status != 200;
 
     $self->_set_nonce( $res->body->[0] );
@@ -83,12 +83,12 @@ sub send_service_call {
     my ($self, $req) = @_;
 
     if ( $req->isa('HTTP::Request') ) {
-        $req->uri( $self->_construct_uri( $req->uri ) );
+        $req->uri( $self->_construct_uri( $self->service_uri, $req->uri ) );
     }
     elsif ( $req->isa('Plack::Request') ) {
         $req = HTTP::Request->new(
             $req->method,
-            $self->_construct_uri( $req->path ),
+            $self->_construct_uri( $self->service_uri, $req->path ),
             $req->headers,
             $req->content
         );
@@ -115,11 +115,11 @@ sub send_service_call {
 }
 
 sub _construct_uri {
-    my ($self, $uri) = @_;
-    if ( $self->service_url =~ /\/$/ && $uri =~ /^\// ) {
+    my ($self, $base, $uri) = @_;
+    if ( $base =~ /\/$/ && $uri =~ /^\// ) {
         $uri =~ s/^\///;
     }
-    return $self->service_url . $uri;
+    return $base . $uri;
 }
 
 sub _generate_auth_header {
