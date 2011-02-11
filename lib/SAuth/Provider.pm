@@ -128,10 +128,9 @@ sub process_access_request {
 sub _grant_access {
     my ($self, $key, $request) = @_;
 
-    my @access_to;
-    foreach my $capability ( @{ $request->access_for }) {
-        push @access_to => $capability
-            if $key->has_capability( $capability );
+    foreach my $capability ( @{ $request->access_for } ) {
+        ($key->has_capability( $capability ))
+            || confess "Cannot grant access for capability ($capability) because it is not allowed by this key";
     }
 
     my $token_lifespan = min( $key->token_max_lifespan, $request->token_lifespan );
@@ -141,7 +140,7 @@ sub _grant_access {
     my $access_grant = SAuth::Core::AccessGrant->new(
         uid         => $key->uid,
         token       => generate_uuid(),
-        access_to   => \@access_to,
+        access_to   => $request->access_for,
         timeout     => $timeout,
         can_refresh => $allow_refresh,
     );

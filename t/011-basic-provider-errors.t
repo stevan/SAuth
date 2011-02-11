@@ -145,5 +145,41 @@ isa_ok($provider, 'SAuth::Provider');
     }, qr/The key for UID \(http\:\/\/www\.example\.info\) is not valid/, '... got the expection we expected');
 }
 
+## .....................................................
+## Create a valid key, and ask for an access grant with
+## capabilties that are not allowed
+## .....................................................
+
+{
+    my $uid = 'http://www.example.com';
+    my $key = $provider->create_key(
+        uid                => $uid,
+        capabilities       => [qw[ read update ]],
+        allow_refresh      => 1,
+        expires            => DateTime->now,
+        token_max_lifespan => 60
+    );
+    isa_ok($key, 'SAuth::Core::Key');
+
+    my $consumer = SAuth::Consumer->new( key => $key );
+    isa_ok($consumer, 'SAuth::Consumer');
+
+    my $access_request = $consumer->create_access_request(
+        access_for     => [qw[ read create ]],
+        token_lifespan => 30
+    );
+    isa_ok($access_request, 'SAuth::Consumer::RequestWrapper');
+
+    like(exception {
+        $provider->process_access_request(
+            uid       => $uid,
+            hmac      => $access_request->hmac,
+            timestamp => $access_request->timestamp,
+            body      => $access_request->body->to_json
+        );
+    }, qr/Cannot grant access for capability \(create\) because it is not allowed by this key/,
+    '... unable to process an access request');
+
+}
 
 done_testing;
