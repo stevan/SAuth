@@ -69,7 +69,8 @@ my $provider_app = builder {
             return [
                 200, [], [
                     'METHOD: ' . $r->method . ';' .
-                    'PATH: ' . $r->path
+                    'PATH: ' . $r->path . ';' .
+                    'CAPABILITIES: ' . (join ", " => @{ $r->env->{'sauth.capabilities'} }) . ';'
                 ]
             ];
         }
@@ -101,35 +102,35 @@ my $client = SAuth::Web::Consumer::Client->new(
 
 is(exception {
     $client->prepare_access_token(
-        access_for     => [qw[ read ]],
+        access_for     => [qw[ read update ]],
         token_lifespan => (20 * 60 * 60)
     );
 }, undef, '... access request sent successfully');
 
 test_psgi(
-    app    => SAuth::Web::Consumer->new( client => $client, service_uri => '/service' )->to_app,
+    app    => SAuth::Web::Consumer->new( client => $client )->to_app,
     client => sub {
         my $cb = shift;
 
         foreach ( 0 .. 3 ) {
-            my $req = GET( "http://localhost/service/" . $_ );
+            my $req = GET( "http://localhost/" . $_ );
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for service');
-            is($res->content, 'METHOD: GET;PATH: /' . $_, '... got the expected content');
+            is($res->content, 'METHOD: GET;PATH: /' . $_ . ';CAPABILITIES: read, update;', '... got the expected content');
         }
 
         foreach ( 0 .. 3 ) {
-            my $req = POST( "http://localhost/service/" . $_ );
+            my $req = POST( "http://localhost/" . $_ );
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for service');
-            is($res->content, 'METHOD: POST;PATH: /' . $_, '... got the expected content');
+            is($res->content, 'METHOD: POST;PATH: /' . $_ . ';CAPABILITIES: read, update;', '... got the expected content');
         }
 
         foreach ( 0 .. 3 ) {
-            my $req = DELETE( "http://localhost/service/" . $_ . '/foo' );
+            my $req = DELETE( "http://localhost/" . $_ . '/foo' );
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for service');
-            is($res->content, 'METHOD: DELETE;PATH: /' . $_ . '/foo', '... got the expected content');
+            is($res->content, 'METHOD: DELETE;PATH: /' . $_ . '/foo;CAPABILITIES: read, update;', '... got the expected content');
         }
     }
 );

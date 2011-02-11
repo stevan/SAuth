@@ -100,7 +100,7 @@ my $client = SAuth::Web::Consumer::Client->new(
 ## ----------------------------------------------------
 
 like(exception {
-    SAuth::Web::Consumer->new( client => $client, service_uri => '/service' )->to_app
+    SAuth::Web::Consumer->new( client => $client )->to_app
 }, qr/You must first acquire an access token before intiailizing this application/,
 '... cant start this unless we have an access token');
 
