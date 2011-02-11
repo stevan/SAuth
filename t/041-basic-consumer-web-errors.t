@@ -101,7 +101,7 @@ my $client = SAuth::Web::Consumer::Client->new(
 
 like(exception {
     SAuth::Web::Consumer->new( client => $client )->to_app
-}, qr/You must first acquire an access token before intiailizing this application/,
+}, qr/The consumer client is not ready/,
 '... cant start this unless we have an access token');
 
 done_testing;

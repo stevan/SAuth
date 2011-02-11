@@ -15,7 +15,7 @@ has 'client' => (
 
 sub prepare_app {
     my $self = shift;
-    confess "You must first acquire an access token before intiailizing this application"
+    confess "The consumer client is not ready"
         unless $self->client->is_ready;
 }
 
