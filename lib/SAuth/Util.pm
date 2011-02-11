@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use SAuth::Core::Error;
+use SAuth::Core::Error::InvalidKey;
 
 use Digest       ();
 use JSON::XS     ();

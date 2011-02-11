@@ -124,7 +124,7 @@ sub _process_and_verify_request {
     my $key = $self->get_key_for( $uid );
 
     ($key->is_valid)
-        || SAuth::Core::Error->throw("The key for UID ($uid) is not valid");
+        || SAuth::Core::Error::InvalidKey->throw("The key for UID ($uid) is not valid");
 
     my $digest = hmac_digest( $key->shared_secret, $timestamp, $body );
 
@@ -212,7 +212,7 @@ sub authenticate {
     my $key = $self->get_key_for( $access_grant->uid );
 
     ($key->is_valid)
-        || SAuth::Core::Error->throw("The key for UID (" . $access_grant->uid . ") is not valid");
+        || SAuth::Core::Error::InvalidKey->throw("The key for UID (" . $access_grant->uid . ") is not valid");
 
     my $digest = hmac_digest( $key->shared_secret, $token, $nonce );
 
