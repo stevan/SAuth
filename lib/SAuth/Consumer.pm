@@ -51,7 +51,7 @@ sub create_refresh_request {
     );
 
     ($self->has_access_grant)
-        || SAuth::Core::Error->throw("No current access grant to refresh");
+        || SAuth::Core::Error::AccessGrantNotFound->throw("No current access grant to refresh");
 
     ($self->access_grant->can_refresh)
         || SAuth::Core::Error->throw("The current access grant does not allow refreshing");

@@ -174,7 +174,7 @@ sub _refresh_access {
     my ($self, $key, $request) = @_;
 
     ($self->has_access_grant_for_token( $request->token ))
-        || SAuth::Core::Error->throw("There is no access grant for token (" . $request->token . ")");
+        || SAuth::Core::Error::AccessGrantNotFound->throw("There is no access grant for token (" . $request->token . ")");
 
     my $access_grant   = $self->token_store->get_access_grant_for_token( $request->token );
     my $token_lifespan = min( $key->token_max_lifespan, $request->token_lifespan );
@@ -199,7 +199,7 @@ sub authenticate {
     );
 
     ($self->has_access_grant_for_token( $token ))
-        || SAuth::Core::Error->throw("There is no access grant for token ($token)");
+        || SAuth::Core::Error::AccessGrantNotFound->throw("There is no access grant for token ($token)");
 
     my $access_grant = $self->get_access_grant_for_token( $token );
 
