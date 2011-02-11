@@ -2,8 +2,6 @@ package SAuth::Web::Consumer;
 use Moose;
 use MooseX::NonMoose;
 
-use Try::Tiny;
-use Plack::App::URLMap;
 use SAuth::Web::Consumer::Client;
 
 extends 'Plack::Component';
