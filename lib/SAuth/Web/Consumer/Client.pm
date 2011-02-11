@@ -6,6 +6,7 @@ use Plack::Client;
 use HTTP::Request;
 use Devel::PartialDump    qw[ dump ];
 use HTTP::Request::Common qw[ GET POST ];
+use HTTP::Throwable::InternalServerError;
 
 has 'plack_client' => (
     is       => 'ro',
@@ -50,7 +51,7 @@ sub prepare_access_token {
             )
         );
 
-        confess "Access Request failed : " . $res->content
+        confess "Access Request failed : " . dump($res)
             if $res->status != 200;
 
         $self->consumer->process_access_grant( @{ $res->body } );
@@ -104,8 +105,11 @@ sub send_service_call {
 
     my $auth_info_header = $res->header('Authentication-Info');
 
-    confess "No Authentication-Info header found for response "  . dump( $res->finalize )
-        unless $auth_info_header;
+    return Plack::Response->new(@{
+        HTTP::Throwable::InternalServerError->new(
+            message => "No Authentication-Info header found for response "  . dump( $res->finalize )
+        )->as_psgi
+    }) unless $auth_info_header;
 
     my ($nonce) = ($auth_info_header =~ /^nextnonce=\"([a-zA-Z0-9-_]+)\"/);
 
