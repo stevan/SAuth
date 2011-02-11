@@ -3,6 +3,8 @@ use Moose;
 use MooseX::NonMoose;
 
 use Try::Tiny;
+use HTTP::Throwable::Unauthorized;
+use HTTP::Throwable::InternalServerError;
 use SAuth::Util;
 
 extends 'Plack::Middleware';
