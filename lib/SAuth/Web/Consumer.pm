@@ -25,28 +25,18 @@ has '_app' => ( is => 'rw' );
 sub prepare_app {
     my $self = shift;
 
-    confess "You must first aquire an access token before intiailizing this application"
+    confess "You must first acquire an access token before intiailizing this application"
         unless $self->client->is_ready;
 
     my $url_map = Plack::App::URLMap->new;
     $url_map->map(
         $self->service_uri => sub {
-            my $r = Plack::Request->new( shift );
-
-            my ($resp, $error);
-            try {
-                $resp = $self->client->send_service_call( $r );
-            } catch {
-                $error = $_;
-            };
-
-            return HTTP::Throwable::InternalServerError->new(
-                show_stack_trace => 0,
-                message          => $error
-            )->as_psgi
-                if $error;
-
-            return $resp->finalize;
+            my $env = shift;
+            $self->client->send_service_call(
+                Plack::Request->new(
+                    $env
+                )
+            )->finalize;
         }
     );
 
