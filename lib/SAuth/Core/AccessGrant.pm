@@ -26,6 +26,7 @@ has 'access_to' => (
 has 'timeout' => (
     is       => 'ro',
     isa      => 'DateTime',
+    writer   => '_update_timeout',
     required => 1
 );
 
@@ -38,6 +39,14 @@ has 'can_refresh' => (
 sub is_valid {
     my $self = shift;
     ( DateTime->compare( DateTime->now, $self->timeout ) <= 0 ) ? 1 : 0
+}
+
+sub refresh {
+    my ($self, $timeout) = @_;
+    ($self->can_refresh)
+        || confess "Cannot refresh this access grant";
+    $self->_update_timeout( $timeout );
+    $self;
 }
 
 sub to_json {
