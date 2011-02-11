@@ -60,7 +60,8 @@ my $app = builder {
         provider => $provider,
         realm    => 'protected-service',
         app      => sub {
-            return [ 200, [], ["HORRAY!"]];
+            my $env = shift;
+            return [ 200, [], [ join ", " => @{ $env->{'sauth.capabilities'} } ]];
         }
     );
 };
@@ -116,7 +117,7 @@ test_psgi(
             is($res->code, 200, '... got the right status for calling wrapped service');
             my $auth_info_header = $res->header('Authentication-Info');
             like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
-            is($res->content, 'HORRAY!', '... got the expected content');
+            is($res->content, 'read', '... got the expected content');
 
             ($nonce) = ($auth_info_header =~ /^nextnonce=\"([a-zA-Z0-9-_]+)\"/);
         }

@@ -51,6 +51,11 @@ sub call {
             )->as_psgi;
         }
         else {
+
+            my $access_grant = $self->provider->get_access_grant_for_token( $token );
+
+            $env->{'sauth.capabilities'} = [ @{ $access_grant->access_to } ];
+
             my $res = $self->app->($env);
             push @{ $res->[1] } => (
                 'Authentication-Info' => 'nextnonce="' . encode_base64( $next_nonce ) . '"'
