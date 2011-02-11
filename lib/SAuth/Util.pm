@@ -5,6 +5,8 @@ use warnings;
 
 use SAuth::Core::Error;
 use SAuth::Core::Error::InvalidKey;
+use SAuth::Core::Error::KeyNotFound;
+use SAuth::Core::Error::InvalidAccessGrant;
 use SAuth::Core::Error::HMACVerificationFail;
 
 use Digest       ();

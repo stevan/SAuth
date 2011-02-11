@@ -89,7 +89,7 @@ sub generate_token_hmac {
         || SAuth::Core::Error->throw("Cannot generate token hmac without a nonce");
 
     ($self->has_valid_access_grant)
-        || SAuth::Core::Error->throw("Cannot generate token hmac without a valid access grant");
+        || SAuth::Core::Error::InvalidAccessGrant->throw("Cannot generate token hmac without a valid access grant");
 
     ($self->key->is_valid)
         || SAuth::Core::Error::InvalidKey->throw("Cannot generate token hmac with an invalid key");

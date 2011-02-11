@@ -119,7 +119,7 @@ sub _process_and_verify_request {
     );
 
     ($self->has_key_for( $uid ))
-        || SAuth::Core::Error->throw("There is no key for the UID ($uid)");
+        || SAuth::Core::Error::KeyNotFound->throw("There is no key for the UID ($uid)");
 
     my $key = $self->get_key_for( $uid );
 
@@ -204,10 +204,10 @@ sub authenticate {
     my $access_grant = $self->get_access_grant_for_token( $token );
 
     ($access_grant->is_valid)
-        || SAuth::Core::Error->throw("The access grant for token ($token) is not valid");
+        || SAuth::Core::Error::InvalidAccessGrant->throw("The access grant for token ($token) is not valid");
 
     ($self->has_key_for( $access_grant->uid ))
-        || SAuth::Core::Error->throw("There is no key for the UID (" . $access_grant->uid . ")");
+        || SAuth::Core::Error::KeyNotFound->throw("There is no key for the UID (" . $access_grant->uid . ")");
 
     my $key = $self->get_key_for( $access_grant->uid );
 
