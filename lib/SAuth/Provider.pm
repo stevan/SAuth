@@ -89,11 +89,33 @@ sub create_key {
 ## Access request
 
 sub process_access_request {
+    my $self = shift;
+
+    my ($key, $body) = $self->_process_and_verify_request( @_ );
+
+    return $self->_grant_access(
+        $key,
+        SAuth::Core::AccessRequest->from_json( $body )
+    );
+}
+
+sub process_access_refresh {
+    my $self = shift;
+
+    my ($key, $body) = $self->_process_and_verify_request( @_ );
+
+    return $self->_refresh_access(
+        $key,
+        SAuth::Core::AccessRefresh->from_json( $body )
+    );
+}
+
+sub _process_and_verify_request {
     my ($self, $uid, $timestamp, $body, $hmac) = validated_list(\@_,
-        uid       => { isa => 'Str' },
-        timestamp => { isa => 'Int' },
-        body      => { isa => 'Str' },
-        hmac      => { isa => 'Str' },
+        uid       => { isa => 'Str'    },
+        timestamp => { isa => 'Int'    },
+        body      => { isa => 'Str'    },
+        hmac      => { isa => 'Str'    },
     );
 
     ($self->has_key_for( $uid ))
@@ -116,10 +138,7 @@ sub process_access_request {
             confess "Invalid Access Request - Request Expired"
         }
 
-        return $self->_grant_access(
-            $key,
-            SAuth::Core::AccessRequest->from_json( $body )
-        );
+        return ( $key, $body );
     }
     else {
         confess "Invalid Access Request - HMAC Verification Fail";
@@ -147,6 +166,21 @@ sub _grant_access {
     );
 
     $self->token_store->add_access_grant_for_token( $access_grant );
+
+    $access_grant;
+}
+
+sub _refresh_access {
+    my ($self, $key, $request) = @_;
+
+    ($self->has_access_grant_for_token( $request->token ))
+        || confess "There is no access grant for token (" . $request->token . ")";
+
+    my $access_grant   = $self->token_store->get_access_grant_for_token( $request->token );
+    my $token_lifespan = min( $key->token_max_lifespan, $request->token_lifespan );
+    my $timeout        = (DateTime->now + DateTime::Duration->new( seconds => $token_lifespan ));
+
+    $self->token_store->update_access_grant_for_token( $access_grant->refresh( $timeout ) );
 
     $access_grant;
 }

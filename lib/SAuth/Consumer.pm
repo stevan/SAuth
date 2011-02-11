@@ -6,6 +6,7 @@ use MooseX::Params::Validate;
 use SAuth::Util;
 use SAuth::Core::Key;
 use SAuth::Core::AccessRequest;
+use SAuth::Core::AccessRefresh;
 
 use SAuth::Consumer::RequestWrapper;
 
@@ -39,6 +40,33 @@ sub create_access_request {
         body => SAuth::Core::AccessRequest->new(
             uid            => $self->key->uid,
             access_for     => $access_for,
+            token_lifespan => $token_lifespan
+        )
+    );
+}
+
+sub create_refresh_request {
+    my ($self, $token_lifespan) = validated_list(\@_,
+        token_lifespan => { isa => 'Int' },
+    );
+
+    ($self->has_access_grant)
+        || confess "No current access grant to refresh";
+
+    ($self->access_grant->can_refresh)
+        || confess "The current access grant does not allow refreshing";
+
+    ($self->key->is_valid)
+        || confess "The key is invalid";
+
+    ($self->key->allow_refresh)
+        || confess "The key does not allow refreshing";
+
+    SAuth::Consumer::RequestWrapper->new(
+        key  => $self->key,
+        body => SAuth::Core::AccessRefresh->new(
+            uid            => $self->key->uid,
+            token          => $self->access_grant->token,
             token_lifespan => $token_lifespan
         )
     );
