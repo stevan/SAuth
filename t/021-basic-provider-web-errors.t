@@ -98,6 +98,19 @@ test_psgi(
             is($res->code, 500, '... got the right status for request_access');
         }
 
+        {
+            my $req = GET(
+                "http://localhost/sauth/request_access?" .
+                    "uid=http://www.example.com;" .
+                    "hmac=" . $access_request->hmac . ";" .
+                    "timestamp=" . $access_request->timestamp . ";" .
+                    "body=" . $access_request->body->to_json . ";"
+            );
+            my $res = $cb->($req);
+            is($res->code, 405, '... got the right status for request_access');
+            is($res->header('Allow'), "POST", '... got the right allow header');
+        }
+
         # now let them pass, and check authenticate ...
 
         my ($access_grant, $nonce);
