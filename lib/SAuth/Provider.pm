@@ -141,7 +141,7 @@ sub _process_and_verify_request {
         return ( $key, $body );
     }
     else {
-        SAuth::Core::Error->throw("Invalid Access Request - HMAC Verification Fail");
+        SAuth::Core::Error::HMACVerificationFail->throw("Invalid Access Request - HMAC Verification Fail");
     }
 }
 
@@ -217,7 +217,7 @@ sub authenticate {
     my $digest = hmac_digest( $key->shared_secret, $token, $nonce );
 
     ( $digest eq $hmac )
-        || SAuth::Core::Error->throw("Authentication Fail - HMAC Verification Fail");
+        || SAuth::Core::Error::HMACVerificationFail->throw("Authentication Fail - HMAC Verification Fail");
 
     return $self->generate_nonce;
 }

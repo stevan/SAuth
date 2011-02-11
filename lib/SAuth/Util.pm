@@ -5,6 +5,7 @@ use warnings;
 
 use SAuth::Core::Error;
 use SAuth::Core::Error::InvalidKey;
+use SAuth::Core::Error::HMACVerificationFail;
 
 use Digest       ();
 use JSON::XS     ();
