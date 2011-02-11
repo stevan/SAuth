@@ -85,11 +85,6 @@ sub process_request {
         $error = $_;
     };
 
-    return $self->process_result( $access_grant, $error );
-}
-
-sub process_result {
-    my ($self, $access_grant, $error) = @_;
     if ($error) {
         return HTTP::Throwable::InternalServerError->new(
             message          => $error,
@@ -106,6 +101,7 @@ sub process_result {
         ];
     }
 }
+
 
 
 __PACKAGE__->meta->make_immutable;
