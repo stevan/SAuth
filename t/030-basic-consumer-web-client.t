@@ -84,6 +84,12 @@ ok(!$client->consumer->access_grant, '... no access grant yet');
 ok(!$client->nonce, '... we dont have a nonce');
 ok(!$client->is_ready, '... we are not ready');
 
+is_deeply($client->check_status, {
+    nonce        => 0,
+    access_grant => 0,
+    key          => 1,
+}, '... client status is not good yet');
+
 is(exception {
     $client->request_access(
         access_for     => [qw[ read ]],
@@ -95,12 +101,24 @@ isa_ok($client->consumer->access_grant, 'SAuth::Core::AccessGrant');
 ok(!$client->nonce, '... we dont have a nonce');
 ok(!$client->is_ready, '... we are not ready');
 
+is_deeply($client->check_status, {
+    nonce        => 0,
+    access_grant => 1,
+    key          => 1,
+}, '... client status is not good yet');
+
 is(exception {
     $client->aquire_nonce;
 }, undef, '... nonce aquired successfully');
 
 ok($client->nonce, '... we have a nonce');
 ok($client->is_ready, '... we are ready now');
+
+is_deeply($client->check_status, {
+    nonce        => 1,
+    access_grant => 1,
+    key          => 1,
+}, '... client status is good');
 
 foreach ( 0 .. 3 ) {
     my $res = $client->call_service( GET "/foo" );

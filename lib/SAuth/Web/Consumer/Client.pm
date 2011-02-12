@@ -1,13 +1,18 @@
 package SAuth::Web::Consumer::Client;
 use Moose;
 use MooseX::StrictConstructor;
+use MooseX::Params::Validate;
 
 use SAuth::Util;
+use Try::Tiny;
+use Devel::PartialDump    qw[ dump ];
+
 use Plack::Client;
 use HTTP::Request;
-use Devel::PartialDump    qw[ dump ];
 use HTTP::Request::Common qw[ GET POST ];
+
 use HTTP::Throwable::InternalServerError;
+use HTTP::Throwable::Unauthorized;
 
 has 'plack_client' => (
     is       => 'ro',
@@ -22,9 +27,10 @@ has 'consumer' => (
 );
 
 has 'nonce' => (
-    is     => 'ro',
-    isa    => 'Str',
-    writer => '_set_nonce',
+    is      => 'ro',
+    isa     => 'Str',
+    writer  => '_set_nonce',
+    clearer => '_clear_nonce'
 );
 
 has [ 'provider_uri', 'service_uri' ] => (
@@ -34,9 +40,15 @@ has [ 'provider_uri', 'service_uri' ] => (
 );
 
 sub request_access {
-    my $self = shift;
+    my ($self, $token_lifespan, $access_for) = validated_list(\@_,
+        token_lifespan => { isa => 'Int' },
+        access_for     => { isa => 'ArrayRef[Str]' },
+    );
 
-    my $access_request = $self->consumer->create_access_request( @_ );
+    my $access_request = $self->consumer->create_access_request(
+        token_lifespan => $token_lifespan,
+        access_for     => $access_for
+    );
 
     my $res = $self->plack_client->request(
         POST(
@@ -54,14 +66,16 @@ sub request_access {
         if $res->status != 200;
 
     $self->consumer->process_access_grant( @{ $res->body } );
-
-    return;
 }
 
 sub refresh_access {
-    my $self = shift;
+    my ($self, $token_lifespan) = validated_list(\@_,
+        token_lifespan => { isa => 'Int' },
+    );
 
-    my $refresh_request = $self->consumer->create_refresh_request( @_ );
+    my $refresh_request = $self->consumer->create_refresh_request(
+        token_lifespan => $token_lifespan
+    );
 
     my $res = $self->plack_client->request(
         POST(
@@ -79,8 +93,6 @@ sub refresh_access {
         if $res->status != 200;
 
     $self->consumer->process_access_grant( @{ $res->body } );
-
-    return;
 }
 
 sub aquire_nonce {
@@ -94,13 +106,25 @@ sub aquire_nonce {
         if $res->status != 200;
 
     $self->_set_nonce( $res->body->[0] );
-
-    return;
 }
 
 sub is_ready {
     my $self = shift;
-    $self->nonce && $self->consumer->has_valid_access_grant ? 1 : 0
+    $self->nonce
+        &&
+    $self->consumer->has_valid_access_grant
+        &&
+    $self->consumer->has_valid_key
+        ? 1 : 0
+}
+
+sub check_status {
+    my $self = shift;
+    return +{
+        nonce        => $self->nonce ? 1 : 0,
+        access_grant => $self->consumer->has_valid_access_grant,
+        key          => $self->consumer->has_valid_key
+    }
 }
 
 sub call_service {
@@ -127,11 +151,36 @@ sub call_service {
 
     my $auth_info_header = $res->header('Authentication-Info');
 
-    return Plack::Response->new(@{
-        HTTP::Throwable::InternalServerError->new(
-            message => "No Authentication-Info header found for response "  . dump( $res->finalize )
-        )->as_psgi
-    }) unless $auth_info_header;
+    unless ( $auth_info_header ) {
+
+        my $error;
+        if ( $res->code == 401 ) {
+
+            # TODO:
+            # Ponder if I should try an extract a nonce
+            # from the WWW-Authenticate header, I am not
+            # sure it would be the right thing to do, or
+            # that it would matter, unless I were to put
+            # an experiation value on the nonce
+            # - SL
+
+            $error = HTTP::Throwable::Unauthorized->new(
+                # NOTE:
+                # wrap the header call in a try block
+                # just to be sure, this call croaks if
+                # there is no headers.
+                # - SL
+                www_authenticate => try { $res->header( 'WWW-Authenticate' ) }
+            )->as_psgi;
+        }
+        else {
+            $error = HTTP::Throwable::InternalServerError->new(
+                message => "No Authentication-Info header found for response "  . dump( $res->finalize )
+            )->as_psgi;
+        }
+
+        return Plack::Response->new( @$error );
+    }
 
     my ($nonce) = ($auth_info_header =~ /^nextnonce=\"([a-zA-Z0-9-_]+)\"/);
 
