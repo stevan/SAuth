@@ -20,17 +20,11 @@ sub prepare_app {
         unless $self->client->is_ready;
 }
 
-sub to_app {
+sub call {
     my $self = shift;
-    $self->prepare_app;
-    return sub {
-        my $env = shift;
-        $self->client->call_service(
-            Plack::Request->new(
-                $env
-            )
-        )->finalize;
-    };
+    my $r    = Plack::Request->new( shift );
+    my $res  = $self->client->call_service( $r );
+    $res->finalize;
 }
 
 
