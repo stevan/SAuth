@@ -50,14 +50,9 @@ my $key = $provider->create_key(
     uid                => 'http://www.example.org',
     capabilities       => [qw[ read update ]],
     allow_refresh      => 1,
-    expires            => DateTime->new( day => 20, month => 12, year => 2012 ),
+    expires            => DateTime->now,
     token_max_lifespan => (24 * 60 * 60)
 );
-
-## ----------------------------------------------------
-## This is our actual service wrapper, so this is
-## what is being protected
-## ----------------------------------------------------
 
 my $provider_app = builder {
     mount '/sauth/' => SAuth::Web::Provider->new( provider => $provider )->to_app;
@@ -76,12 +71,6 @@ my $provider_app = builder {
     );
 };
 
-## ----------------------------------------------------
-## Now this is on the app side, we tell the client
-## where to find the providers, and initialize a
-## consumer object for it;
-## ----------------------------------------------------
-
 my $client = SAuth::Web::Consumer::Client->new(
     consumer     => SAuth::Consumer->new( key => $key ),
     provider_uri => 'psgi-local://test_app/sauth/',
@@ -95,13 +84,12 @@ my $client = SAuth::Web::Consumer::Client->new(
     )
 );
 
-## ----------------------------------------------------
-## aquire the access token ...
-## ----------------------------------------------------
+diag("wait a second ...");
+sleep(2);
 
 like(exception {
     SAuth::Web::Consumer->new( client => $client )->to_app
-}, qr/The consumer client is not ready/,
+}, qr/Consumer client is not ready/,
 '... cant start this unless we have an access token');
 
 done_testing;
