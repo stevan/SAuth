@@ -101,11 +101,12 @@ my $client = SAuth::Web::Consumer::Client->new(
 ## ----------------------------------------------------
 
 is(exception {
-    $client->prepare_access_token(
+    $client->request_access(
         access_for     => [qw[ read update ]],
         token_lifespan => (20 * 60 * 60)
     );
-}, undef, '... access request sent successfully');
+    $client->aquire_nonce;
+}, undef, '... nonce aquired successfully');
 
 test_psgi(
     app    => SAuth::Web::Consumer->new( client => $client )->to_app,

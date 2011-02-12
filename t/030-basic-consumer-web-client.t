@@ -85,18 +85,25 @@ ok(!$client->nonce, '... we dont have a nonce');
 ok(!$client->is_ready, '... we are not ready');
 
 is(exception {
-    $client->prepare_access_token(
+    $client->request_access(
         access_for     => [qw[ read ]],
         token_lifespan => (20 * 60 * 60)
     );
 }, undef, '... access request sent successfully');
 
 isa_ok($client->consumer->access_grant, 'SAuth::Core::AccessGrant');
+ok(!$client->nonce, '... we dont have a nonce');
+ok(!$client->is_ready, '... we are not ready');
+
+is(exception {
+    $client->aquire_nonce;
+}, undef, '... nonce aquired successfully');
+
 ok($client->nonce, '... we have a nonce');
 ok($client->is_ready, '... we are ready now');
 
 foreach ( 0 .. 3 ) {
-    my $res = $client->send_service_call( GET "/foo" );
+    my $res = $client->call_service( GET "/foo" );
     is($res->code, 200, '... got the right status');
     my $auth_info_header = $res->header('Authentication-Info');
     like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
@@ -104,7 +111,7 @@ foreach ( 0 .. 3 ) {
 }
 
 foreach ( 0 .. 3 ) {
-    my $res = $client->send_service_call( POST "/bar/" . $_ );
+    my $res = $client->call_service( POST "/bar/" . $_ );
     is($res->code, 200, '... got the right status');
     my $auth_info_header = $res->header('Authentication-Info');
     like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');
@@ -112,7 +119,7 @@ foreach ( 0 .. 3 ) {
 }
 
 foreach ( 0 .. 3 ) {
-    my $res = $client->send_service_call( DELETE "/baz/" . $_ . '/gorch' );
+    my $res = $client->call_service( DELETE "/baz/" . $_ . '/gorch' );
     is($res->code, 200, '... got the right status');
     my $auth_info_header = $res->header('Authentication-Info');
     like($auth_info_header, qr/^nextnonce\=\"[a-zA-Z0-9-_]+\"$/, '... got the right nonce in the header');

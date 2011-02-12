@@ -86,7 +86,7 @@ my $key = $provider->create_key(
     ok(!$client->is_ready, '... we are not ready');
 
     like(exception {
-        $client->prepare_access_token(
+        $client->request_access(
             access_for     => [qw[ read ]],
             token_lifespan => (20 * 60 * 60)
         );
@@ -144,7 +144,7 @@ my $key = $provider->create_key(
     ok(!$client->is_ready, '... we are not ready');
 
     like(exception {
-        $client->prepare_access_token(
+        $client->aquire_nonce(
             access_for     => [qw[ read ]],
             token_lifespan => (20 * 60 * 60)
         );
@@ -183,20 +183,65 @@ my $key = $provider->create_key(
     ok(!$client->is_ready, '... we are not ready');
 
     is(exception {
-        $client->prepare_access_token(
+        $client->request_access(
             access_for     => [qw[ read ]],
             token_lifespan => (20 * 60 * 60)
         );
     }, undef, '... access request sent successfully');
 
+    is(exception {
+        $client->aquire_nonce;
+    }, undef, '... nonce aquired successfully');
+
     isa_ok($client->consumer->access_grant, 'SAuth::Core::AccessGrant');
     ok($client->nonce, '... we have a nonce');
     ok($client->is_ready, '... we are ready now');
 
-    my $res = $client->send_service_call( GET "/foo" );
+    my $res = $client->call_service( GET "/foo" );
     is($res->code, 500, '... got the right status');
     like($res->body->[0], qr/500 Internal Server Error No Authentication\-Info header found/, '... got the expected content');
 }
+
+{
+    my $app = builder {
+        mount '/sauth/' => SAuth::Web::Provider->new( provider => $provider )->to_app;
+        mount '/-/'     => SAuth::Web::Provider::AuthMiddleware->new(
+            provider => $provider,
+            realm    => 'protected-service',
+            app      => sub {
+                my $r = Plack::Request->new( shift );
+                return [
+                    200, [], [
+                        'METHOD: ' . $r->method . ';' .
+                        'PATH: ' . $r->path
+                    ]
+                ];
+            }
+        );
+    };
+
+    my $client = SAuth::Web::Consumer::Client->new(
+        provider_uri => 'psgi-local://test_app/sauth/',
+        service_uri  => 'psgi-local://test_app/-/',
+        consumer     => SAuth::Consumer->new( key => $key ),
+        plack_client => Plack::Client->new(
+            'psgi-local' => {
+                apps => {
+                    test_app => $app
+                }
+            }
+        )
+    );
+
+    ok(!$client->consumer->access_grant, '... no access grant yet');
+    ok(!$client->nonce, '... we dont have a nonce');
+    ok(!$client->is_ready, '... we are not ready');
+
+    like(exception {
+        $client->call_service( GET "/foo" );
+    }, qr/Cannot make a service call until client is ready/, '... cannot call service if client is not ready');
+}
+
 
 done_testing;
 

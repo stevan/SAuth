@@ -110,17 +110,19 @@ my $rw_client = SAuth::Web::Consumer::Client->new(
 ## ----------------------------------------------------
 
 is(exception {
-    $ro_client->prepare_access_token(
+    $ro_client->request_access(
         access_for     => [qw[ read ]],
         token_lifespan => (20 * 60 * 60)
     );
+    $ro_client->aquire_nonce;
 }, undef, '... ro access request sent successfully');
 
 is(exception {
-    $rw_client->prepare_access_token(
+    $rw_client->request_access(
         access_for     => [qw[ read update ]],
         token_lifespan => (20 * 60 * 60)
     );
+    $rw_client->aquire_nonce;
 }, undef, '... rw access request sent successfully');
 
 test_psgi(

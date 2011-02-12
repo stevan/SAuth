@@ -33,37 +33,57 @@ has [ 'provider_uri', 'service_uri' ] => (
     required => 1,
 );
 
-sub prepare_access_token {
+sub request_access {
     my $self = shift;
 
-    unless ( $self->consumer->has_valid_access_grant ) {
+    my $access_request = $self->consumer->create_access_request( @_ );
 
-        my $access_request = $self->consumer->create_access_request( @_ );
+    my $res = $self->plack_client->request(
+        POST(
+            $self->_construct_uri( $self->provider_uri, "/request_access" ),
+            [
+                uid       => $self->consumer->key->uid,
+                hmac      => $access_request->hmac,
+                timestamp => $access_request->timestamp,
+                body      => $access_request->body->to_json
+            ]
+        )
+    );
 
-        my $res = $self->plack_client->request(
-            POST(
-                $self->_construct_uri( $self->provider_uri, "/request_access" ),
-                [
-                    uid       => $self->consumer->key->uid,
-                    hmac      => $access_request->hmac,
-                    timestamp => $access_request->timestamp,
-                    body      => $access_request->body->to_json
-                ]
-            )
-        );
+    SAuth::Core::Error->throw("Access Request failed : " . dump($res))
+        if $res->status != 200;
 
-        SAuth::Core::Error->throw("Access Request failed : " . dump($res))
-            if $res->status != 200;
-
-        $self->consumer->process_access_grant( @{ $res->body } );
-    }
-
-    $self->_get_nonce;
+    $self->consumer->process_access_grant( @{ $res->body } );
 
     return;
 }
 
-sub _get_nonce {
+sub refresh_access {
+    my $self = shift;
+
+    my $refresh_request = $self->consumer->create_refresh_request( @_ );
+
+    my $res = $self->plack_client->request(
+        POST(
+            $self->_construct_uri( $self->provider_uri, "/refresh_access" ),
+            [
+                uid       => $self->consumer->key->uid,
+                hmac      => $refresh_request->hmac,
+                timestamp => $refresh_request->timestamp,
+                body      => $refresh_request->body->to_json
+            ]
+        )
+    );
+
+    SAuth::Core::Error->throw("Access Request failed : " . dump($res))
+        if $res->status != 200;
+
+    $self->consumer->process_access_grant( @{ $res->body } );
+
+    return;
+}
+
+sub aquire_nonce {
     my $self = shift;
 
     my $res = $self->plack_client->request(
@@ -74,6 +94,8 @@ sub _get_nonce {
         if $res->status != 200;
 
     $self->_set_nonce( $res->body->[0] );
+
+    return;
 }
 
 sub is_ready {
@@ -81,8 +103,11 @@ sub is_ready {
     $self->nonce && $self->consumer->has_valid_access_grant ? 1 : 0
 }
 
-sub send_service_call {
+sub call_service {
     my ($self, $req) = @_;
+
+    ($self->is_ready)
+        || confess "Cannot make a service call until client is ready";
 
     if ( $req->isa('HTTP::Request') ) {
         $req->uri( $self->_construct_uri( $self->service_uri, $req->uri ) );
@@ -98,11 +123,7 @@ sub send_service_call {
 
     $req->header('Authorization' => $self->_generate_auth_header);
 
-    #use Data::Dumper; warn Dumper $req;
-
     my $res = $self->plack_client->request( $req );
-
-    #use Data::Dumper; warn Dumper $res;
 
     my $auth_info_header = $res->header('Authentication-Info');
 
@@ -118,6 +139,8 @@ sub send_service_call {
 
     return $res;
 }
+
+# ...
 
 sub _construct_uri {
     my ($self, $base, $uri) = @_;

@@ -25,7 +25,7 @@ sub to_app {
     $self->prepare_app;
     return sub {
         my $env = shift;
-        $self->client->send_service_call(
+        $self->client->call_service(
             Plack::Request->new(
                 $env
             )
