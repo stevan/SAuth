@@ -15,7 +15,7 @@ has 'key' => (
     isa      => 'SAuth::Core::Key',
     required => 1,
     trigger  => sub {
-        ((shift)->key->is_valid)
+        ((shift)->has_valid_key)
             || SAuth::Core::Error::InvalidKey->throw;
     }
 );
@@ -32,7 +32,7 @@ sub create_access_request {
         access_for     => { isa => 'ArrayRef[Str]' },
     );
 
-    ($self->key->is_valid)
+    ($self->has_valid_key)
         || SAuth::Core::Error::InvalidKey->throw;
 
     SAuth::Consumer::RequestWrapper->new(
@@ -56,7 +56,7 @@ sub create_refresh_request {
     ($self->access_grant->can_refresh)
         || SAuth::Core::Error::CannotRefresh->throw("The current access grant does not allow refreshing");
 
-    ($self->key->is_valid)
+    ($self->has_valid_key)
         || SAuth::Core::Error::InvalidKey->throw;
 
     ($self->key->allow_refresh)
@@ -82,6 +82,11 @@ sub has_valid_access_grant {
     $self->has_access_grant && $self->access_grant->is_valid ? 1 : 0
 }
 
+sub has_valid_key {
+    my $self = shift;
+    $self->key->is_valid ? 1 : 0
+}
+
 sub generate_token_hmac {
     my ($self, $nonce) = @_;
 
@@ -91,7 +96,7 @@ sub generate_token_hmac {
     ($self->has_valid_access_grant)
         || SAuth::Core::Error::InvalidAccessGrant->throw("Cannot generate token hmac without a valid access grant");
 
-    ($self->key->is_valid)
+    ($self->has_valid_key)
         || SAuth::Core::Error::InvalidKey->throw("Cannot generate token hmac with an invalid key");
 
     hmac_digest(
