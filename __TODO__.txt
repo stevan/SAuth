@@ -2,3 +2,8 @@
 - create SAuth::Consumer::Perisistent
     - it should just after the access_grant accessor method
       and save it to disk if need be
+
+- SAuth::Web::Provider::AuthMiddleware
+    - we are checking most of hte 401 errors, but still need to check
+        - SAuth::Core::Error::KeyNotFound
+        - SAuth::Core::Error::InvalidKey
