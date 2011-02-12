@@ -65,9 +65,13 @@ my $provider_app = builder {
         provider => $provider,
         realm    => 'protected-service',
         app      => sub {
-            my $env = shift;
+            my $r = Plack::Request->new( shift );
             return [
-                200, [], [ "CAPABILITIES: " . (join ", " => @{ $env->{'sauth.capabilities'} }) . ';' ]
+                200, [], [
+                    'METHOD: ' . $r->method . ';' .
+                    'PATH: ' . $r->path . ';' .
+                    'CAPABILITIES: ' . (join ", " => @{ $r->env->{'sauth.capabilities'} }) . ';'
+                ]
             ];
         }
     );
@@ -79,20 +83,7 @@ my $provider_app = builder {
 ## consumer object for it;
 ## ----------------------------------------------------
 
-my $ro_client = SAuth::Web::Consumer::Client->new(
-    consumer     => SAuth::Consumer->new( key => $key ),
-    provider_uri => 'psgi-local://test_app/sauth/',
-    service_uri  => 'psgi-local://test_app/-/',
-    plack_client => Plack::Client->new(
-        'psgi-local' => {
-            apps => {
-                test_app => $provider_app
-            }
-        }
-    )
-);
-
-my $rw_client = SAuth::Web::Consumer::Client->new(
+my $client = SAuth::Web::Consumer::Client->new(
     consumer     => SAuth::Consumer->new( key => $key ),
     provider_uri => 'psgi-local://test_app/sauth/',
     service_uri  => 'psgi-local://test_app/-/',
@@ -109,39 +100,35 @@ my $rw_client = SAuth::Web::Consumer::Client->new(
 ## aquire the access token ...
 ## ----------------------------------------------------
 
-is(exception {
-    $ro_client->request_access(
-        access_for     => [qw[ read ]],
-        token_lifespan => (20 * 60 * 60)
-    );
-    $ro_client->aquire_nonce;
-}, undef, '... ro access request sent successfully');
-
 test_psgi(
-    app    => builder {
-        mount '/service/' => SAuth::Web::Consumer->new( client => $ro_client )->to_app;
-        mount '/admin/service/' => SAuth::Web::Consumer->new(
-            client          => $rw_client,
-            automate_access => 1,
-            access_for      => [qw[ read update ]],
-            token_lifespan  => (20 * 60 * 60)
-        )->to_app;
-    },
+    app    => SAuth::Web::Consumer->new(
+        client          => $client,
+        automate_access => 1,
+        access_for      => [qw[ read update ]],
+        token_lifespan  => (20 * 60 * 60)
+    )->to_app,
     client => sub {
         my $cb = shift;
 
-        {
-            my $req = GET( "http://localhost/service/");
+        foreach ( 0 .. 3 ) {
+            my $req = GET( "http://localhost/" . $_ );
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for service');
-            is($res->content, 'CAPABILITIES: read;', '... got the expected content');
+            is($res->content, 'METHOD: GET;PATH: /' . $_ . ';CAPABILITIES: read, update;', '... got the expected content');
         }
 
-        {
-            my $req = GET( "http://localhost/admin/service/");
+        foreach ( 0 .. 3 ) {
+            my $req = POST( "http://localhost/" . $_ );
             my $res = $cb->($req);
             is($res->code, 200, '... got the right status for service');
-            is($res->content, 'CAPABILITIES: read, update;', '... got the expected content');
+            is($res->content, 'METHOD: POST;PATH: /' . $_ . ';CAPABILITIES: read, update;', '... got the expected content');
+        }
+
+        foreach ( 0 .. 3 ) {
+            my $req = DELETE( "http://localhost/" . $_ . '/foo' );
+            my $res = $cb->($req);
+            is($res->code, 200, '... got the right status for service');
+            is($res->content, 'METHOD: DELETE;PATH: /' . $_ . '/foo;CAPABILITIES: read, update;', '... got the expected content');
         }
     }
 );
