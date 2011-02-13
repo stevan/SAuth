@@ -161,7 +161,27 @@ sub call_service {
 
     $req->header('Authorization' => $self->_generate_auth_header);
 
-    my $res = $self->plack_client->request( $req );
+    my $max_retries = 10;
+    my $num_retries = 0;
+    my $res;
+    do {
+        # NOTE:
+        # This is just plain stupid, but it
+        # seems that AnyEvent::HTTP (which is
+        # used by Plack::App::Proxy, which is
+        # used by the Plack::Client HTTP backend)
+        # just likes to get "stuck" every once
+        # in a while, however it seems that if
+        # you just ignore it and try again it
+        # seems to just work. The real solution
+        # here actually is to write a different
+        # HTTP backend for Plack::Client that
+        # is less flakey.
+        # - SL
+        warn ".............. Retrying after a 502\n" if $res;
+        $res = $self->plack_client->request( $req );
+        $max_retries++;
+    } while $res->code == 502 && $num_retries < $max_retries;
 
     my $auth_info_header = $res->header('Authentication-Info');
 
