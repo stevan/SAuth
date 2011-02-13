@@ -7,3 +7,10 @@
     - we are checking most of hte 401 errors, but still need to check
         - SAuth::Core::Error::KeyNotFound
         - SAuth::Core::Error::InvalidKey
+
+- SAuth::Web::Consumer::Client
+    - the whole retry after 502 stuff is wrong
+        - we might need to add it to the other operations
+          though if it persists
+    - should we extract the nonce from the 401 errors??
+    - should we clear the nonce if we don't get one back??
