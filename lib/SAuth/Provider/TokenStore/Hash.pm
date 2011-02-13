@@ -21,7 +21,7 @@ sub add_access_grant_for_token {
     $self->access_grants->{ $access_grant->token } = $access_grant;
 }
 
-*update_access_grant_for_token = \&add_access_grant_for_token;
+sub update_access_grant_for_token { (shift)->add_access_grant_for_token( @_ ) }
 
 __PACKAGE__->meta->make_immutable;
 
