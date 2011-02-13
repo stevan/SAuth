@@ -136,13 +136,16 @@ sub call_service {
         || confess "Cannot make a service call until client is ready";
 
     if ( $req->isa('HTTP::Request') ) {
-        $req->uri( $self->_construct_uri( $self->service_uri, $req->uri ) );
+        $req->uri( $self->_construct_uri( $self->service_uri, $req->uri->path_query ) );
     }
     elsif ( $req->isa('Plack::Request') ) {
+        my $headers = $req->headers;
+        $headers->remove_header('Host');
+
         $req = HTTP::Request->new(
             $req->method,
-            $self->_construct_uri( $self->service_uri, $req->path ),
-            $req->headers,
+            $self->_construct_uri( $self->service_uri, $req->uri->path_query ),
+            $headers,
             $req->content
         );
     }
