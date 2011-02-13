@@ -137,6 +137,18 @@ sub call_service {
     }
     elsif ( $req->isa('Plack::Request') ) {
         my $headers = $req->headers;
+        # NOTE:
+        # We need to remove this because
+        # it will be the host for this
+        # side and req_to_psgi will use
+        # the value of this to set the
+        # uri's host-port and then things
+        # will just not work right.
+        # I suspect too that we might want
+        # to not send on most of the other
+        # headers as well, but we can punt
+        # on that for now.
+        # - SL
         $headers->remove_header('Host');
 
         $req = HTTP::Request->new(
@@ -180,6 +192,12 @@ sub call_service {
                 message => "No Authentication-Info header found for response "  . dump( $res->finalize )
             )->as_psgi;
         }
+
+        # NOTE:
+        # I think perhaps I might want to clear
+        # the nonce value here, but I am not 100%
+        # sure if it makes sense or not.
+        # - SL
 
         return Plack::Response->new( @$error );
     }
