@@ -46,47 +46,44 @@ sub request_access {
         token_lifespan => { isa => 'Int' },
         access_for     => { isa => 'ArrayRef[Str]' },
     );
-
-    my $access_request = $self->consumer->create_access_request(
-        token_lifespan => $token_lifespan,
-        access_for     => $access_for
-    );
-
-    my $res = $self->plack_client->request(
-        POST(
-            $self->_construct_uri( $self->provider_uri, "/request_access" ),
-            [
-                uid       => $self->consumer->key->uid,
-                hmac      => $access_request->hmac,
-                timestamp => $access_request->timestamp,
-                body      => $access_request->body->to_json
-            ]
+    $self->_process_access_operation(
+        "/request_access" => $self->consumer->create_access_request(
+            token_lifespan => $token_lifespan,
+            access_for     => $access_for
         )
     );
-
-    SAuth::Core::Error->throw("Access Request failed : " . dump($res))
-        if $res->status != 200;
-
-    $self->consumer->process_access_grant( @{ $res->body } );
 }
 
 sub refresh_access {
     my ($self, $token_lifespan) = validated_list(\@_,
         token_lifespan => { isa => 'Int' },
     );
-
-    my $refresh_request = $self->consumer->create_refresh_request(
-        token_lifespan => $token_lifespan
+    $self->_process_access_operation(
+        "/refresh_access" => $self->consumer->create_refresh_request(
+            token_lifespan => $token_lifespan
+        )
     );
+}
+
+sub _process_access_operation {
+    my ($self, $uri, $request) = @_;
+
+    # NOTE:
+    # We might want to put the same
+    # 502 prevention code here, but
+    # these don't seem to be a problem
+    # for me right now, so I am going
+    # to punt on this.
+    # - SL
 
     my $res = $self->plack_client->request(
         POST(
-            $self->_construct_uri( $self->provider_uri, "/refresh_access" ),
+            $self->_construct_uri( $self->provider_uri, $uri ),
             [
                 uid       => $self->consumer->key->uid,
-                hmac      => $refresh_request->hmac,
-                timestamp => $refresh_request->timestamp,
-                body      => $refresh_request->body->to_json
+                hmac      => $request->hmac,
+                timestamp => $request->timestamp,
+                body      => $request->body->to_json
             ]
         )
     );
