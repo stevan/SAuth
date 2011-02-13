@@ -3,6 +3,7 @@ use Moose;
 use MooseX::StrictConstructor;
 
 use SAuth::Util;
+use SAuth::Provider;
 
 use Try::Tiny;
 use Path::Router;

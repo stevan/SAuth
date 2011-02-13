@@ -4,6 +4,8 @@ use MooseX::StrictConstructor;
 use MooseX::Params::Validate;
 
 use SAuth::Util;
+use SAuth::Consumer;
+
 use Try::Tiny;
 use Devel::PartialDump    qw[ dump ];
 
