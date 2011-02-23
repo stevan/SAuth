@@ -14,3 +14,5 @@
           though if it persists
     - should we extract the nonce from the 401 errors??
     - should we clear the nonce if we don't get one back??
+    - should we strip the Authentication-Info headers after
+      we have gotten the nonce out??
