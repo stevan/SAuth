@@ -151,9 +151,13 @@ sub call_service {
         # - SL
         $headers->remove_header('Host');
 
+        my $base_uri = $req->base;
+        my $uri      = $req->uri;
+        $uri =~ s/^$base_uri//;
+
         $req = HTTP::Request->new(
             $req->method,
-            $self->_construct_uri( $self->service_uri, $req->uri->path_query ),
+            $self->_construct_uri( $self->service_uri, $uri ),
             $headers,
             $req->content
         );
