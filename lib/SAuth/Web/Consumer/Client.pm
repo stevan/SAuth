@@ -184,7 +184,7 @@ sub call_service {
         # - SL
         warn ".............. Retrying after a 502\n" if $res;
         $res = $self->plack_client->request( $req );
-        $max_retries++;
+        $num_retries++;
     } while $res->code == 502 && $num_retries < $max_retries;
 
     my $auth_info_header = $res->header('Authentication-Info');
