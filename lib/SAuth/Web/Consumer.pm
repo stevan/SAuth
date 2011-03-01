@@ -39,7 +39,7 @@ sub check_client_status {
 
         unless ( $status->{access_grant} ) {
             if ( $self->client->consumer->has_access_grant ) {
-                $self->client->request_refresh(
+                $self->client->refresh_access(
                     token_lifespan => $self->token_lifespan
                 );
             }
