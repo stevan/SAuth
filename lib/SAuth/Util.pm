@@ -19,7 +19,7 @@ use Digest::HMAC;
 use Digest::SHA1;
 
 use Data::UUID;
-use Crypt::Random::Source qw[ get_strong ];
+use Crypt::Random::Source qw[ get_strong get_weak ];
 
 use DateTime;
 use DateTime::Format::RFC3339;
@@ -72,7 +72,11 @@ sub hmac_digest {
 
 sub generate_uuid { Data::UUID->new->create_str }
 
-sub generate_random_data { get_strong( shift || 16 ) }
+sub generate_random_data {
+    $ENV{'SAUTH_WEAK_RAND'}
+        ? get_weak( shift || 16 )
+        : get_strong( shift || 16 )
+}
 
 sub encode_base64 { MIME::Base64::encode_base64url( shift ) }
 sub decode_base64 { MIME::Base64::decode_base64url( shift ) }
