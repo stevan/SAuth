@@ -7,8 +7,7 @@ use SAuth::Util;
 use SAuth::Provider;
 
 use Try::Tiny;
-use HTTP::Throwable::Unauthorized;
-use HTTP::Throwable::InternalServerError;
+use HTTP::Throwable::Factory qw[ http_exception ];
 
 extends 'Plack::Middleware';
 
@@ -65,9 +64,11 @@ sub call {
                 return $self->unauthorized( $error->message );
             }
             else {
-                return HTTP::Throwable::InternalServerError->new(
-                    message          => $error,
-                    show_stack_trace => 0
+                return http_exception(
+                    'InternalServerError' => {
+                        message          => $error,
+                        show_stack_trace => 0
+                    }
                 )->as_psgi;
             }
         }
@@ -91,12 +92,14 @@ sub call {
 
 sub unauthorized {
     my $self = shift;
-    return HTTP::Throwable::Unauthorized->new(
-        www_authenticate =>
-            'SAuth realm="' . $self->realm
-              . '",nonce="' . encode_base64( $self->provider->generate_nonce ) . '"',
-        # provide an optional message
-        (scalar @_ ? (message => shift) : ())
+    return http_exception(
+        'Unauthorized' => {
+            www_authenticate =>
+                'SAuth realm="' . $self->realm
+                  . '",nonce="' . encode_base64( $self->provider->generate_nonce ) . '"',
+            # provide an optional message
+            (scalar @_ ? (message => shift) : ())
+        }
     )->as_psgi;
 }
 

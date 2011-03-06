@@ -13,8 +13,7 @@ use Plack::Client;
 use HTTP::Request;
 use HTTP::Request::Common qw[ GET POST ];
 
-use HTTP::Throwable::InternalServerError;
-use HTTP::Throwable::Unauthorized;
+use HTTP::Throwable::Factory qw[ http_exception ];
 
 has 'plack_client' => (
     is       => 'ro',
@@ -202,18 +201,22 @@ sub call_service {
             # an experiation value on the nonce
             # - SL
 
-            $error = HTTP::Throwable::Unauthorized->new(
-                # NOTE:
-                # wrap the header call in a try block
-                # just to be sure, this call croaks if
-                # there is no headers.
-                # - SL
-                www_authenticate => try { $res->header( 'WWW-Authenticate' ) }
+            $error = http_exception(
+                'Unauthorized' => {
+                    # NOTE:
+                    # wrap the header call in a try block
+                    # just to be sure, this call croaks if
+                    # there is no headers.
+                    # - SL
+                    www_authenticate => try { $res->header( 'WWW-Authenticate' ) }
+                }
             )->as_psgi;
         }
         else {
-            $error = HTTP::Throwable::InternalServerError->new(
-                message => "No Authentication-Info header found for response "  . dump( $res->finalize )
+            $error = http_exception(
+                'InternalServerError' => {
+                    message => "No Authentication-Info header found for response "  . dump( $res->finalize )
+                }
             )->as_psgi;
         }
 

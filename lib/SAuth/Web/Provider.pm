@@ -8,8 +8,7 @@ use SAuth::Provider;
 use Try::Tiny;
 use Path::Router;
 use Plack::Request;
-use HTTP::Throwable::InternalServerError;
-use HTTP::Throwable::MethodNotAllowed;
+use HTTP::Throwable::Factory qw[ http_exception ];
 
 extends 'Plack::App::Path::Router::PSGI';
 
@@ -62,9 +61,11 @@ sub build_router {
 sub process_request {
     my ($self, $provider_method, $r) = @_;
 
-    return HTTP::Throwable::MethodNotAllowed->new(
-        allow   => [ 'POST' ],
-        message => 'Only POST is supported'
+    return http_exception(
+        'MethodNotAllowed' => {
+            allow   => [ 'POST' ],
+            message => 'Only POST is supported'
+        }
     )->as_psgi
         if $r->method ne 'POST';
 
@@ -87,9 +88,11 @@ sub process_request {
     };
 
     if ($error) {
-        return HTTP::Throwable::InternalServerError->new(
-            message          => $error,
-            show_stack_trace => 0
+        return http_exception(
+            'InternalServerError' => {
+                message          => $error,
+                show_stack_trace => 0
+            }
         )->as_psgi;
     }
     else {
