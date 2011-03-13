@@ -73,9 +73,9 @@ sub hmac_digest {
 sub generate_uuid { Data::UUID->new->create_str }
 
 sub generate_random_data {
-    $ENV{'SAUTH_WEAK_RAND'}
-        ? get_weak( shift || 16 )
-        : get_strong( shift || 16 )
+    $ENV{'USE_SAUTH_STRONG_RAND'}
+        ? get_strong( shift || 16 )
+        : get_weak( shift || 16 )
 }
 
 sub encode_base64 { MIME::Base64::encode_base64url( shift ) }
