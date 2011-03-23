@@ -36,10 +36,10 @@ sub get_access_grant_for_token {
 sub update_access_grant_for_token {
     my ($self, $access_grant) = @_;
     $self->dbh->do(
-        'UPDATE access_grants SET token = ?, access_grant = ?',
+        'UPDATE access_grants SET access_grant = ? WHERE token = ?',
         {},
-        $access_grant->token,
-        $access_grant->to_json
+        $access_grant->to_json,
+        $access_grant->token
     );
 }
 
