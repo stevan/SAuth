@@ -28,66 +28,54 @@ has 'realm' => (
 sub call {
     my ($self, $env) = @_;
 
-    my $auth = $env->{HTTP_AUTHORIZATION};
+    my $challange = $self->extract_challange_from_env( $env );
 
-    return $self->unauthorized unless $auth;
+    return $self->unauthorized unless $challange;
 
-    if ($auth =~ /^SAuth (.*)$/) {
-        my $challange = $self->parse_challenge( $1 );
+    my ($next_nonce, $error);
+    try {
+        $next_nonce = $self->provider->authenticate( %$challange );
+    } catch {
+        $error = $_;
+    };
 
-        my($token, $hmac) = split /:/, $challange->{response};
+    if ($error) {
 
-        my ($next_nonce, $error);
-        try {
-            $next_nonce = $self->provider->authenticate(
-                token => $token,
-                hmac  => $hmac,
-                nonce => $challange->{nonce}
-            );
-        } catch {
-            $error = $_;
-        };
-
-        if ($error) {
-
-            if (blessed $error) {
-                # NOTE:
-                # We need to deal with these possible errors
-                # - SAuth::Core::Error::AccessGrantNotFound
-                # - SAuth::Core::Error::InvalidAccessGrant
-                # - SAuth::Core::Error::KeyNotFound
-                # - SAuth::Core::Error::InvalidKey
-                # - SAuth::Core::Error::HMACVerificationFail
-                # All of which represent some kind of auth
-                # failure, so we just return unauthorized
-                # - SL
-                return $self->unauthorized( $error->message );
-            }
-            else {
-                return http_exception(
-                    'InternalServerError' => {
-                        message          => $error,
-                        show_stack_trace => 0
-                    }
-                )->as_psgi;
-            }
+        if (blessed $error) {
+            # NOTE:
+            # We need to deal with these possible errors
+            # - SAuth::Core::Error::AccessGrantNotFound
+            # - SAuth::Core::Error::InvalidAccessGrant
+            # - SAuth::Core::Error::KeyNotFound
+            # - SAuth::Core::Error::InvalidKey
+            # - SAuth::Core::Error::HMACVerificationFail
+            # All of which represent some kind of auth
+            # failure, so we just return unauthorized
+            # - SL
+            return $self->unauthorized( $error->message );
         }
         else {
-
-            my $access_grant = $self->provider->get_access_grant_for_token( $token );
-
-            $env->{'sauth.capabilities'} = [ @{ $access_grant->access_to } ];
-
-            my $res = $self->app->($env);
-            push @{ $res->[1] } => (
-                'Authentication-Info' => 'nextnonce="' . encode_base64( $next_nonce ) . '"'
-            );
-            return $res;
+            return http_exception(
+                'InternalServerError' => {
+                    message          => $error,
+                    show_stack_trace => 0
+                }
+            )->as_psgi;
         }
+    }
+    else {
 
+        my $access_grant = $self->provider->get_access_grant_for_token( $challange->{'token'} );
+
+        $env->{'sauth.capabilities'} = [ @{ $access_grant->access_to } ];
+
+        my $res = $self->app->($env);
+        push @{ $res->[1] } => (
+            'Authentication-Info' => 'nextnonce="' . encode_base64( $next_nonce ) . '"'
+        );
+        return $res;
     }
 
-    return $self->unauthorized;
 }
 
 sub unauthorized {
@@ -105,12 +93,33 @@ sub unauthorized {
 
 # utils ...
 
+sub extract_challange_from_env {
+    my ($self, $env) = @_;
+
+    my $auth = $env->{'HTTP_AUTHORIZATION'};
+
+    return unless $auth;
+
+    my ($header) = ($auth =~ /^SAuth (.*)$/);
+    return unless $header;
+
+    my $extracted = $self->parse_challenge_from_header( $header );
+    my ($token, $hmac) = split /:/, $extracted->{'response'};
+
+    return +{
+        nonce => $extracted->{'nonce'},
+        token => $token,
+        hmac  => $hmac
+    };
+}
+
+
 # NOTE:
 # These were stolen pretty much verbatim
 # from Plack::Middleware::Digest, except
 # that I do the base64 decode on the values
 # - SL
-sub parse_challenge {
+sub parse_challenge_from_header {
     my ( $self, $header ) = @_;
     my $auth;
     while ( $header =~ /(\w+)\=("[^\"]+"|[^,]+)/g ) {
