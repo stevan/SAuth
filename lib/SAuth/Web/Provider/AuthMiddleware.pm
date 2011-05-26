@@ -69,11 +69,7 @@ sub call {
 
         $env->{'sauth.capabilities'} = [ @{ $access_grant->access_to } ];
 
-        my $res = $self->app->($env);
-        push @{ $res->[1] } => (
-            'Authentication-Info' => 'nextnonce="' . encode_base64( $next_nonce ) . '"'
-        );
-        return $res;
+        return $self->call_app( $env, $next_nonce );
     }
 
 }
@@ -92,6 +88,17 @@ sub unauthorized {
 }
 
 # utils ...
+
+sub call_app {
+    my ($self, $env, $next_nonce) = @_;
+
+    my $res = $self->app->($env);
+    push @{ $res->[1] } => (
+        'Authentication-Info' => 'nextnonce="' . encode_base64( $next_nonce ) . '"'
+    );
+
+    return $res;
+}
 
 sub extract_challange_from_env {
     my ($self, $env) = @_;
