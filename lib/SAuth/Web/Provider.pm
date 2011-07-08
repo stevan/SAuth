@@ -90,7 +90,7 @@ sub process_request {
     if ($error) {
         return http_exception(
             'InternalServerError' => {
-                message          => $error,
+                message          => "$error",
                 show_stack_trace => 0
             }
         )->as_psgi;
