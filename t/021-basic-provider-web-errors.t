@@ -25,6 +25,7 @@ BEGIN {
 }
 
 my $DB_FILE = file("$FindBin::Bin/data/db");
+$DB_FILE->parent->mkpath;
 
 unlink $DB_FILE;
 
