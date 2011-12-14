@@ -17,9 +17,15 @@ BEGIN {
     use_ok('SAuth::Provider::TokenStore::MongoDB');
 }
 
-my $mongo = MongoDB::Connection->new;
-my $db    = $mongo->get_database('test-sauth');
+my $mongo = try {
+    MongoDB::Connection->new;
+} catch {
+    diag('... no MongoDB instance to connect too');
+    done_testing();
+    exit();
+};
 
+my $db = $mongo->get_database('test-sauth');
 $db->drop;
 
 my $provider = SAuth::Provider->new(
