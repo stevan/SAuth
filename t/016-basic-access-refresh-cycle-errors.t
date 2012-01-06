@@ -47,7 +47,7 @@ isa_ok($provider, 'SAuth::Provider');
         uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
-        expires            => DateTime->new( day => 20, month => 12, year => 2012 ),
+        expires            => DateTime->new( day => 20, month => 12, year => 2025 ),
         token_max_lifespan => (24 * 60 * 60)
     );
     isa_ok($key, 'SAuth::Core::Key');
@@ -90,7 +90,7 @@ isa_ok($provider, 'SAuth::Provider');
         uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 0,
-        expires            => DateTime->new( day => 20, month => 12, year => 2012 ),
+        expires            => DateTime->new( day => 20, month => 12, year => 2025 ),
         token_max_lifespan => (24 * 60 * 60)
     );
     isa_ok($key, 'SAuth::Core::Key');
@@ -158,7 +158,7 @@ isa_ok($provider, 'SAuth::Provider');
         uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
-        expires            => DateTime->new( year => 2012 ),
+        expires            => DateTime->new( year => 2025 ),
         token_max_lifespan => 60
     );
     isa_ok($key, 'SAuth::Core::Key');

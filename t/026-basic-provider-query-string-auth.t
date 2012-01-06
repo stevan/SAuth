@@ -44,7 +44,7 @@ my $key = $provider->create_key(
     uid                => 'http://www.example.org',
     capabilities       => [qw[ read update ]],
     allow_refresh      => 1,
-    expires            => DateTime->new( day => 20, month => 12, year => 2012 ),
+    expires            => DateTime->new( day => 20, month => 12, year => 2025 ),
     token_max_lifespan => (24 * 60 * 60)
 );
 

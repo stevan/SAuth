@@ -50,7 +50,7 @@ isa_ok($provider, 'SAuth::Provider');
         uid                => $uid,
         capabilities       => [qw[ read update ]],
         allow_refresh      => 1,
-        expires            => DateTime->new( year => 2012 ),
+        expires            => DateTime->new( year => 2025 ),
         token_max_lifespan => 60
     );
     isa_ok($key, 'SAuth::Core::Key');

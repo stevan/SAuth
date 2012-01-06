@@ -44,7 +44,7 @@ my $json;
             update
         ]],
         allow_refresh      => 1,
-        expires            => DateTime->new( day => 20, month => 12, year => 2012 ),
+        expires            => DateTime->new( day => 20, month => 12, year => 2025 ),
         token_max_lifespan => 24 * 60 * 60
     );
     isa_ok($key, 'SAuth::Core::Key');
@@ -74,7 +74,7 @@ sub check_key {
     ok($key->allow_refresh, '... got the right allow_refresh');
     is($key->expires->day, 20, '... got the right expires day');
     is($key->expires->month, 12, '... got the right expires month');
-    is($key->expires->year, 2012, '... got the right expires year');
+    is($key->expires->year, 2025, '... got the right expires year');
     is($key->token_max_lifespan, 24 * 60 * 60, '... got the right token max lifespan in hours');
     like(SAuth::Util::encode_base64($key->shared_secret), qr/^[a-zA-Z0-9-_]+$/, '... got the expected shared secret format');
 }

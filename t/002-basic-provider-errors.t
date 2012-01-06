@@ -53,7 +53,7 @@ isa_ok($provider, 'SAuth::Provider');
             uid                => 'http://www.example.org',
             capabilities       => [qw[ read transmogrify ]],
             allow_refresh      => 1,
-            expires            => DateTime->new( year => 2012 ),
+            expires            => DateTime->new( year => 2025 ),
             token_max_lifespan => 60
         )
     }, qr/The capability \(transmogrify\) is not offered by this provider/,
@@ -64,7 +64,7 @@ isa_ok($provider, 'SAuth::Provider');
             uid                => 'http://www.example.org',
             capabilities       => [qw[ read ]],
             allow_refresh      => 1,
-            expires            => DateTime->new( year => 2012 ),
+            expires            => DateTime->new( year => 2025 ),
             token_max_lifespan => 60
         )
     }, qr/There is already a key for http\:\/\/www\.example\.org/,
